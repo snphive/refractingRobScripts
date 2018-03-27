@@ -1,9 +1,10 @@
 rm(list=ls(all=TRUE))
+install.packages("plyr")
 library(plyr)
 
 Seqdet <- read.delim("SummaryPerResSeqDet.txt",header=T)
 Agad <- read.delim("SummaryPerResAgad.txt",header=T)
-Seqdet$Res1 <- mapvalues(Seqdet$amino.acid,from=c("ALA","CYS","ASP","GLU","PHE","GLY","HIS","H2S","H1S","ILE","LYS","LEU","MET","ASN","PRO","GLN","ARG","SER","THR","VAL","TRP","TYR"),to=c("A","C","D","E","F","G","H","H","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"))
+Seqdet$Res1 <- plyr::mapvalues(Seqdet$amino.acid,from=c("ALA","CYS","ASP","GLU","PHE","GLY","HIS","H2S","H1S","ILE","LYS","LEU","MET","ASN","PRO","GLN","ARG","SER","THR","VAL","TRP","TYR"),to=c("A","C","D","E","F","G","H","H","H","I","K","L","M","N","P","Q","R","S","T","V","W","Y"))
 Seqdet$Resnum <- Seqdet$number
 Seqdet$Mol <- Seqdet$chain
 

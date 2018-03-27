@@ -103,8 +103,8 @@ for mol in Mols:
 				g.write('#!/bin/bash\n')
 				g.write('#$ -N SB_'+mutation+'\n')
 				g.write('#$ -V\n')
-        			g.write('#$ -cwd\n')
-        			g.write('source ~/.bash_profile\n')
+				g.write('#$ -cwd\n')
+				g.write('source ~/.bash_profile\n')
 				g.write(FoldX_Path+' -runfile runscript.txt\n')
 				g.close()
 				indiv.write(mutation+';\n')
@@ -115,10 +115,10 @@ indiv.close()
 check_qstat = subprocess.Popen('qstat',stdout=subprocess.PIPE)
 output_qstat = check_qstat.stdout.read()
 while 'SB_' in output_qstat:
-        print 'Waiting for all Solubis jobs to finish'
-        time.sleep(10)
-        check_qstat = subprocess.Popen('qstat',stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
+	print 'Waiting for all Solubis jobs to finish'
+	time.sleep(10)
+	check_qstat = subprocess.Popen('qstat',stdout=subprocess.PIPE)
+	output_qstat = check_qstat.stdout.read()
 
 dirs = sorted(glob.glob('./*'))
 name_agad = name
@@ -294,5 +294,3 @@ for path in dirs:
 		sumstring = mut+'\t'+mol+'\t'+ddG+'\t'+str(dTango)+'\t'+str(ComplexSum)+'\t'+Complex+'\n'
 		g.write(sumstring)
 g.close()
-
-
