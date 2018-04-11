@@ -2,12 +2,14 @@ import os
 import glob
 import subprocess
 import time
-import yasara
+import OptimizeProtein.yasara
+
+OptimizeProtein.yasara.info.mode = 'txt'
 
 
 class OptProt:
+
     # declare all global variables
-    __option_file__ = ''
     __pdb_list__ = []
     __command__ = ''
     __charge__ = ''
@@ -20,22 +22,11 @@ class OptProt:
     __scripts_path__ = ''
 
     # initialiser
-    def __init__(self):
-        global __option_file__
+    def __init__(self, start_path, scripts_path):
         global __start_path__
         global __scripts_path__
-
-        __option_file__ = open('./OptProt_Options.txt', 'r').readlines()
-
-        OptProt().parse_option_file(__option_file__)
-        __start_path__ = os.getcwd()
-
-        if not os.path.exists('Results'):
-            os.makedirs('Results')
-        __scripts_path__ = __start_path__ + '/SourceFiles/Scripts'
-
-        OptProt().run_yasara_agadir_repair()
-        OptProt().wait_on_repair()
+        __start_path__ = start_path
+        __scripts_path__ = scripts_path
 
     # Extracts instructions from OptProt_Options file for which computations to run & proteins to run them on:
     # 1. list of pdb names;
@@ -51,6 +42,7 @@ class OptProt:
         global __foldx_path__
         global __agadir_path__
         global __qsub_path__
+        __pdb_list__ = []
 
         for line in __option_file__:
             if '#' in line:
@@ -120,15 +112,15 @@ class OptProt:
                 os.makedirs('PDBs')
             if not os.path.exists('Fasta'):
                 os.makedirs('Fasta')
-            yasara.run('DelObj all')
-            yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
-            yasara.run('DelRes !Protein')
-            tempMols = yasara.run('ListMol All,Format=MOLNAME')
+            OptimizeProtein.yasara.run('DelObj all')
+            OptimizeProtein.yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
+            OptimizeProtein.yasara.run('DelRes !Protein')
+            tempMols = OptimizeProtein.yasara.run('ListMol All,Format=MOLNAME')
 
             for mol in tempMols:
-                yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
+                OptimizeProtein.yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
 
-            yasara.run(
+            OptimizeProtein.yasara.run(
                 'SavePDB 1,' + __start_path__ + '/Results/' + name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
             subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
             subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
@@ -151,7 +143,6 @@ class OptProt:
             subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
             os.chdir(__start_path__)
 
-    # Holds the python script process waiting until the grid engine has completed the FoldX repair.
     def wait_on_repair(self):
         check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
         output_qstat = check_qstat.stdout.read()
@@ -162,8 +153,6 @@ class OptProt:
             check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
             output_qstat = check_qstat.stdout.read()
 
-    # Runs the selected computations (commands) as indicated in the OptProt_Options.txt file
-    # via several python scripts as well as some R scripts.
     def perform_selected_computations(self):
         for PDB in __pdb_list__:
             name = PDB.split('.')[0]
