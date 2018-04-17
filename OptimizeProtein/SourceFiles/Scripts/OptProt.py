@@ -127,14 +127,12 @@ class OptProt:
             name = self._build_results_directory_tree_for_each(PDB)
             # current directory is now inside Results folder
             self._run_yasara_to_organise_pdb(PDB, pdb_name)
-            subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
-            subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
-            subprocess.call('cp ' + __start_path__ + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
-            subprocess.call('cp ' + __start_path__ + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
+            self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
             self._print_OptProt_calling_script('pdb2fasta.py')
             subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
             self._print_OptProt_calling_script('agadir.py')
             subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
+            # self._run_repair_on_grid_engine(pdb_name)
             self._print_OptProt_calling_script('repair.py')
             g = open('./job.q', 'w')
             g.write('#!/bin/bash\n')
@@ -146,6 +144,27 @@ class OptProt:
             g.close()
             subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
             os.chdir(__start_path__)
+
+    def _run_repair_on_grid_engine(self, pdb_name):
+        repair_python_script = 'repair.py'
+        self._print_OptProt_calling_script(repair_python_script)
+        g = open('./job.q', 'w')
+        g.write('#!/bin/bash\n')
+        g.write('#$ -N RPjob_' + pdb_name + '\n')
+        g.write('#$ -V\n')
+        g.write('#$ -cwd\n')
+        g.write('source ~/.bash_profile\n')
+        g.write(__execute_python_and_path_to_script__ + repair_python_script + __qsub_path__ + '\n')
+        g.close()
+        subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
+        os.chdir(__start_path__)
+
+    def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, PDB):
+        cp_start_path = 'cp ' + __start_path__
+        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
+        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
+        subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
+        subprocess.call(cp_start_path + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
 
     def wait_for_repair_to_complete(self):
         check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
