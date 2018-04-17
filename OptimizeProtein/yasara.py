@@ -18,9 +18,10 @@
 # it, e.g. the directory where you keep your own Python modules.
 # If you move YASARA somewhere else, please adapt the path below:
 
-yasaradir='/Applications/YASARA.app/yasara'
-
-import sys,os
-sys.path.append(os.path.join(yasaradir,'pym'))
-sys.path.append(os.path.join(yasaradir,'plg'))
+import sys
+import os
 from yasaramodule import *
+yasaradir = '/Applications/YASARA.app/yasara'
+sys.path.append(os.path.join(yasaradir, 'pym'))
+sys.path.append(os.path.join(yasaradir, 'plg'))
+
