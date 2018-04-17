@@ -3,6 +3,8 @@ import glob
 import subprocess
 import time
 from OptimizeProtein import yasara
+# import pydevd
+# pydevd.settrace('localhost', port=51234, stdoutToServer=True, stderrToServer=True)
 
 yasara.info.mode = 'txt'
 
@@ -121,25 +123,19 @@ class OptProt:
         if not os.path.exists('Results'):
             os.makedirs('Results')
         for PDB in self.__pdb_list__:
+            pdb_name = PDB.split('.')[0]
             name = self._build_results_directory_tree_for_each(PDB)
             # current directory is now inside Results folder
-            yasara.run('DelObj all')
-            yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
-            yasara.run('DelRes !Protein')
-            tempMols = yasara.run('ListMol All,Format=MOLNAME')
-            for mol in tempMols:
-                yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
-            yasara.run(
-                'SavePDB 1,' + __start_path__ + '/Results/' + name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
+            self._run_yasara_to_organise_pdb(PDB, pdb_name)
             subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
             subprocess.call('cp ' + __start_path__ + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
             subprocess.call('cp ' + __start_path__ + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
             subprocess.call('cp ' + __start_path__ + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
-            print 'pdb2fasta.py'
+            self._print_OptProt_calling_script('pdb2fasta.py')
             subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
-            print 'agadir.py'
+            self._print_OptProt_calling_script('agadir.py')
             subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
-            print 'repair.py'
+            self._print_OptProt_calling_script('repair.py')
             g = open('./job.q', 'w')
             g.write('#!/bin/bash\n')
             g.write('#$ -N RPjob_' + name + '\n')
@@ -183,11 +179,11 @@ class OptProt:
                 os.makedirs(folder_name)
 
     def _compute_stretchplot(self, PDB):
-        print 'OptProt.py calling stretchplot.py'
+        self._print_OptProt_calling_script('stretchplot.py')
         subprocess.call(
             'python ' + __scripts_path__ + '/stretchplot.py ' + __molecules_and_paths_to_r_foldx_agadir__,
             shell=True)
-        print 'OptProt.py calling stretchplot.R'
+        self._print_OptProt_calling_script('stretchplot.R')
         subprocess.call('R < ' + __scripts_path__ + '/stretchplot.R --no-save', shell=True)
 
     def _build_directory_tree_for_computations(self):
@@ -215,7 +211,7 @@ class OptProt:
     def _compute(self, *args):
         for command in args:
             python_script = self._convert_command_name_to_python_script_name(command)
-            print 'OptProt.py calling ' + python_script + '....'
+            self._print_OptProt_calling_script(python_script)
             if self.__command__ == 'Supercharge' or self.__command__ == 'DelPos' or self.__command__ == 'Indiv':
                 subprocess.call(
                     __execute_python_and_path_to_script__ + python_script +
@@ -239,3 +235,19 @@ class OptProt:
         elif self.__command__ == 'Supercharge':
             python_script_name = 'supercharge'
         return python_script_name + '.py'
+
+    def _run_yasara_to_organise_pdb(self, PDB, pdb_name):
+        yasara.run('DelObj all')
+        yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
+        yasara.run('DelRes !Protein')
+        tempMols = yasara.run('ListMol All,Format=MOLNAME')
+        for mol in tempMols:
+            yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
+        yasara.run(
+            'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
+
+    def _print_OptProt_calling_script(self, python_script):
+        print 'OptProt.py calling ' + python_script + '....'
+
+
+# pydevd.stoptrace()
