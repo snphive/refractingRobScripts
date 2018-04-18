@@ -45,9 +45,9 @@ class OptProt:
         global __molecules_and_paths_to_r_foldx_agadir__
         global __molecules_and_paths_to_r_foldx_agadir_and_charge__
         __molecules_and_paths_to_r_foldx_agadir__ = ' ' + self.__molecules__ + ' ' + __r_path__ + ' ' + __foldx_path__ + \
-                                                    ' ' + __agadir_path__
+            ' ' + __agadir_path__
         __molecules_and_paths_to_r_foldx_agadir_and_charge__ = __molecules_and_paths_to_r_foldx_agadir__ + ' ' + \
-                                                               self.__charge__
+            self.__charge__
 
     # Called by parse_option_file() for:
     # 1. list of pdb names
@@ -132,18 +132,18 @@ class OptProt:
             subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
             self._print_OptProt_calling_script('agadir.py')
             subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
-            # self._run_repair_on_grid_engine(pdb_name)
-            self._print_OptProt_calling_script('repair.py')
-            g = open('./job.q', 'w')
-            g.write('#!/bin/bash\n')
-            g.write('#$ -N RPjob_' + name + '\n')
-            g.write('#$ -V\n')
-            g.write('#$ -cwd\n')
-            g.write('source ~/.bash_profile\n')
-            g.write('python ' + __scripts_path__ + '/repair.py ' + __qsub_path__ + '\n')
-            g.close()
-            subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
-            os.chdir(__start_path__)
+            self._run_repair_on_grid_engine(pdb_name)
+            # self._print_OptProt_calling_script('repair.py')
+            # g = open('./job.q', 'w')
+            # g.write('#!/bin/bash\n')
+            # g.write('#$ -N RPjob_' + name + '\n')
+            # g.write('#$ -V\n')
+            # g.write('#$ -cwd\n')
+            # g.write('source ~/.bash_profile\n')
+            # g.write('python ' + __scripts_path__ + '/repair.py ' + __qsub_path__ + '\n')
+            # g.close()
+            # subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
+            # os.chdir(__start_path__)
 
     def _run_repair_on_grid_engine(self, pdb_name):
         repair_python_script = 'repair.py'
