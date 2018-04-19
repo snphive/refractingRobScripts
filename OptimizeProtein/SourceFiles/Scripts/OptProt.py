@@ -225,7 +225,7 @@ class OptProt:
             self._compute(self.__command__)
 
     def _compute_stabilize_solubis_solubismild_cysscan(self):
-        self._compute_('Stabilize', 'Solubis', 'SolubisMild', 'CysScan')
+        self._compute('Stabilize', 'Solubis', 'SolubisMild', 'CysScan')
 
     def _compute(self, *args):
         for command in args:
