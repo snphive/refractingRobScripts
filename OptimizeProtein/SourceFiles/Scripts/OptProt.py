@@ -17,17 +17,17 @@ class OptProt:
     __qsub_path__ = ''
     __start_path__ = ''
     __scripts_path__ = ''
-    __execute_python_and_path_to_script__ = ''
+    __execute_python_and_path_to_script_fwdslash__ = ''
     __molecules_and_paths_to_r_foldx_agadir__ = ''
     __molecules_and_paths_to_r_foldx_agadir_and_charge__ = ''
 
     def __init__(self, start_path, scripts_path):
         global __start_path__
         global __scripts_path__
-        global __execute_python_and_path_to_script__
+        global __execute_python_and_path_to_script_fwdslash__
         __start_path__ = start_path
         __scripts_path__ = scripts_path
-        __execute_python_and_path_to_script__ = 'python ' + __scripts_path__ + '/'
+        __execute_python_and_path_to_script_fwdslash__ = 'python ' + __scripts_path__ + '/'
         self.__pdb_list__ = []
         self.__command__ = ''
         self.__charge__ = ''
@@ -124,7 +124,7 @@ class OptProt:
             os.makedirs('Results')
         for PDB in self.__pdb_list__:
             pdb_name = PDB.split('.')[0]
-            name = self._build_results_directory_tree_for_each(PDB)
+            self._build_results_directory_tree_for_each(PDB)
             # current directory is now inside Results folder
             self._run_yasara_to_organise_pdb(PDB, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
@@ -133,17 +133,6 @@ class OptProt:
             self._print_OptProt_calling_script('agadir.py')
             subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
             self._run_repair_on_grid_engine(pdb_name)
-            # self._print_OptProt_calling_script('repair.py')
-            # g = open('./job.q', 'w')
-            # g.write('#!/bin/bash\n')
-            # g.write('#$ -N RPjob_' + name + '\n')
-            # g.write('#$ -V\n')
-            # g.write('#$ -cwd\n')
-            # g.write('source ~/.bash_profile\n')
-            # g.write('python ' + __scripts_path__ + '/repair.py ' + __qsub_path__ + '\n')
-            # g.close()
-            # subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
-            # os.chdir(__start_path__)
 
     def _run_repair_on_grid_engine(self, pdb_name):
         repair_python_script = 'repair.py'
@@ -154,7 +143,7 @@ class OptProt:
         g.write('#$ -V\n')
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
-        g.write(__execute_python_and_path_to_script__ + repair_python_script + __qsub_path__ + '\n')
+        g.write(__execute_python_and_path_to_script_fwdslash__ + repair_python_script + ' ' + __qsub_path__ + '\n')
         g.close()
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
@@ -190,7 +179,6 @@ class OptProt:
             os.makedirs('Results/' + pdb_name)
         os.chdir('Results/' + pdb_name)
         self._create_folder_for('Repair', 'Agadir', 'Runs', 'PDBs', 'Fasta')
-        return pdb_name
 
     def _create_folder_for(self, *args):
         for folder_name in args:
@@ -233,12 +221,12 @@ class OptProt:
             self._print_OptProt_calling_script(python_script)
             if self.__command__ == 'Supercharge' or self.__command__ == 'DelPos' or self.__command__ == 'Indiv':
                 subprocess.call(
-                    __execute_python_and_path_to_script__ + python_script +
+                    __execute_python_and_path_to_script_fwdslash__ + python_script +
                     __molecules_and_paths_to_r_foldx_agadir_and_charge__,
                     shell=True)
             else:
                 subprocess.call(
-                    __execute_python_and_path_to_script__ + python_script + __molecules_and_paths_to_r_foldx_agadir__,
+                    __execute_python_and_path_to_script_fwdslash__ + python_script + __molecules_and_paths_to_r_foldx_agadir__,
                     shell=True)
 
     def _convert_command_name_to_python_script_name(self, command):
