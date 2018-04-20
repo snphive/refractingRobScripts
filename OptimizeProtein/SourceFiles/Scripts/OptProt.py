@@ -78,17 +78,11 @@ class OptProt:
             self._compute_commands()
             os.chdir(__start_path__)
 
-    def _wait_for_repair_to_complete(self):
-        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
-        while 'RPjob_' in output_qstat:
-            print 'Waiting for PDBs to be repaired'
-            time.sleep(10)
-            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
+# # # # # # # # # PRIVATE METHODS # # # # # # # # #
 
-    # Called by parse_option_file() for:
-    # 1. list of pdb names
+# # # # # # Called by parse_option_file() # # # # #
+
+    # 1. returns list of pdb names from option file.
     def __build_pdb_list_from(self, __option_file__):
         self.__pdb_list__ = []
         for line in __option_file__:
@@ -109,8 +103,7 @@ class OptProt:
                     self.__pdb_list__.append(pdb_string)
         print 'PDBs to analyse:\t\t' + ",\t".join(self.__pdb_list__)
 
-    # Called by parse_option_file() for:
-    # 2. computation names ("command"), charge, protein chains ("molecules")
+    # 2. returns computation names ("command"), charge, protein chains ("molecules") from option file.
     def __parse_cmd_charge_mols_from(self, __option_file__):
         for line in __option_file__:
             if '#' in line:
@@ -132,8 +125,7 @@ class OptProt:
         print 'Command to be executed:\t\t' + self.__command__
         print 'Molecules to be considered:\t' + self.__molecules__
 
-    # Called by parse_option_file() for:
-    # 3. absolute paths to all required software and to the grid engine executables
+    # 3. returns absolute paths to all required software and to the grid engine executables from option file.
     def __parse_paths_for_r_foldx_agadir_qsub_from(self, __option_file__):
         global __r_path__
         global __foldx_path__
@@ -153,6 +145,24 @@ class OptProt:
         print 'Absolute path to TANGO:\t\t' + __agadir_path__
         print 'Absolute path to Qsub:\t\t' + __qsub_path__
 
+# # # # Called by run_yasara_agadir_repair() # # # #
+
+    def _run_yasara_to_organise_pdb(self, PDB, pdb_name):
+        yasara.run('DelObj all')
+        yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
+        yasara.run('DelRes !Protein')
+        tempMols = yasara.run('ListMol All,Format=MOLNAME')
+        for mol in tempMols:
+            yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
+        yasara.run(
+            'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
+
+    def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, PDB):
+        cp_start_path = 'cp ' + __start_path__
+        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
+        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
+        subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
+        subprocess.call(cp_start_path + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
 
     def _run_repair_on_grid_engine(self, pdb_name):
         repair_python_script = 'repair.py'
@@ -168,24 +178,16 @@ class OptProt:
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
 
-    def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, PDB):
-        cp_start_path = 'cp ' + __start_path__
-        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
-        subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
-        subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
-        subprocess.call(cp_start_path + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
+# # # # Called by perform_selected_computations() # # # #
 
-    def _build_results_directory_tree_for_each(self, pdb):
-        pdb_name = pdb.split('.')[0]
-        if not os.path.exists('Results/' + pdb_name):
-            os.makedirs('Results/' + pdb_name)
-        os.chdir('Results/' + pdb_name)
-        self._create_folder_for('Repair', 'Agadir', 'Runs', 'PDBs', 'Fasta')
-
-    def _create_folder_for(self, *args):
-        for folder_name in args:
-            if not os.path.exists(folder_name):
-                os.makedirs(folder_name)
+    def _wait_for_repair_to_complete(self):
+        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+        output_qstat = check_qstat.stdout.read()
+        while 'RPjob_' in output_qstat:
+            print 'Waiting for PDBs to be repaired'
+            time.sleep(10)
+            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+            output_qstat = check_qstat.stdout.read()
 
     def _compute_stretchplot(self, PDB):
         self._print_OptProt_calling_script('stretchplot.py')
@@ -245,15 +247,19 @@ class OptProt:
             python_script_name = 'supercharge'
         return python_script_name + '.py'
 
-    def _run_yasara_to_organise_pdb(self, PDB, pdb_name):
-        yasara.run('DelObj all')
-        yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
-        yasara.run('DelRes !Protein')
-        tempMols = yasara.run('ListMol All,Format=MOLNAME')
-        for mol in tempMols:
-            yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
-        yasara.run(
-            'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
+# # # # # # # # # UTILITY METHODS # # # # # # # # #
+
+    def _build_results_directory_tree_for_each(self, pdb):
+        pdb_name = pdb.split('.')[0]
+        if not os.path.exists('Results/' + pdb_name):
+            os.makedirs('Results/' + pdb_name)
+        os.chdir('Results/' + pdb_name)
+        self._create_folder_for('Repair', 'Agadir', 'Runs', 'PDBs', 'Fasta')
+
+    def _create_folder_for(self, *args):
+        for folder_name in args:
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)
 
     def _print_OptProt_calling_script(self, python_script):
         print 'OptProt.py calling ' + python_script + '....'
