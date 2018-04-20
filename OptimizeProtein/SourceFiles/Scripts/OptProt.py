@@ -176,9 +176,11 @@ class OptProt:
         os.chdir(__start_path__)
 
     def _run_agadir(self):
-        self._print_OptProt_calling_script('pdb2fasta.py')
+        pdb2fasta_python_script = 'pdb2fasta.py'
+        agadir_python_script = 'agadir.py'
+        self._print_OptProt_calling_script(pdb2fasta_python_script)
         subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
-        self._print_OptProt_calling_script('agadir.py')
+        self._print_OptProt_calling_script(agadir_python_script)
         subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
 
 # # # # Called by perform_selected_computations() # # # #
