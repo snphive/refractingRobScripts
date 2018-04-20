@@ -59,13 +59,10 @@ class OptProt:
         for PDB in self.__pdb_list__:
             pdb_name = PDB.split('.')[0]
             self._build_results_directory_tree_for_each(PDB)
-            # current directory is now inside Results folder
+            # current directory is the pdb subfolder of the Results folder
             self._run_yasara_to_organise_pdb(PDB, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
-            self._print_OptProt_calling_script('pdb2fasta.py')
-            subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
-            self._print_OptProt_calling_script('agadir.py')
-            subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
+            self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
 
     def perform_selected_computations(self):
@@ -177,6 +174,12 @@ class OptProt:
         g.close()
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
+
+    def _run_agadir(self):
+        self._print_OptProt_calling_script('pdb2fasta.py')
+        subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
+        self._print_OptProt_calling_script('agadir.py')
+        subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
 
 # # # # Called by perform_selected_computations() # # # #
 
