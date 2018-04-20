@@ -49,6 +49,43 @@ class OptProt:
         __molecules_and_paths_to_r_foldx_agadir_and_charge__ = __molecules_and_paths_to_r_foldx_agadir__ + ' ' + \
             self.__charge__
 
+    # Tidies up each pdb file using Yasara functions.
+    # Converts each pdb to fasta protein sequence via pdb2fasta.py.
+    # Runs Agadirwrapper on each fasta protein sequence via agadir.py.
+    # Runs FoldX repair on each pdb via repair.py.
+    def run_yasara_agadir_repair(self):
+        if not os.path.exists('Results'):
+            os.makedirs('Results')
+        for PDB in self.__pdb_list__:
+            pdb_name = PDB.split('.')[0]
+            self._build_results_directory_tree_for_each(PDB)
+            # current directory is now inside Results folder
+            self._run_yasara_to_organise_pdb(PDB, pdb_name)
+            self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
+            self._print_OptProt_calling_script('pdb2fasta.py')
+            subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
+            self._print_OptProt_calling_script('agadir.py')
+            subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
+            self._run_repair_on_grid_engine(pdb_name)
+
+    def wait_for_repair_to_complete(self):
+        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+        output_qstat = check_qstat.stdout.read()
+        while 'RPjob_' in output_qstat:
+            print 'Waiting for PDBs to be repaired'
+            time.sleep(10)
+            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+            output_qstat = check_qstat.stdout.read()
+
+    def perform_selected_computations(self):
+        for PDB in self.__pdb_list__:
+            self._build_results_directory_tree_for_each(PDB)
+            self._compute_stretchplot(PDB)
+            if not os.path.exists('Runs/' + self.__command__):
+                self._build_directory_tree_for_computations()
+            self._compute_commands()
+            os.chdir(__start_path__)
+
     # Called by parse_option_file() for:
     # 1. list of pdb names
     def __build_pdb_list_from(self, __option_file__):
@@ -115,24 +152,6 @@ class OptProt:
         print 'Absolute path to TANGO:\t\t' + __agadir_path__
         print 'Absolute path to Qsub:\t\t' + __qsub_path__
 
-    # Tidies up each pdb file using Yasara functions.
-    # Converts each pdb to fasta protein sequence via pdb2fasta.py.
-    # Runs Agadirwrapper on each fasta protein sequence via agadir.py.
-    # Runs FoldX repair on each pdb via repair.py.
-    def run_yasara_agadir_repair(self):
-        if not os.path.exists('Results'):
-            os.makedirs('Results')
-        for PDB in self.__pdb_list__:
-            pdb_name = PDB.split('.')[0]
-            self._build_results_directory_tree_for_each(PDB)
-            # current directory is now inside Results folder
-            self._run_yasara_to_organise_pdb(PDB, pdb_name)
-            self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
-            self._print_OptProt_calling_script('pdb2fasta.py')
-            subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
-            self._print_OptProt_calling_script('agadir.py')
-            subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
-            self._run_repair_on_grid_engine(pdb_name)
 
     def _run_repair_on_grid_engine(self, pdb_name):
         repair_python_script = 'repair.py'
@@ -154,24 +173,6 @@ class OptProt:
         subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
         subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
         subprocess.call(cp_start_path + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
-
-    def wait_for_repair_to_complete(self):
-        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
-        while 'RPjob_' in output_qstat:
-            print 'Waiting for PDBs to be repaired'
-            time.sleep(10)
-            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
-
-    def perform_selected_computations(self):
-        for PDB in self.__pdb_list__:
-            self._build_results_directory_tree_for_each(PDB)
-            self._compute_stretchplot(PDB)
-            if not os.path.exists('Runs/' + self.__command__):
-                self._build_directory_tree_for_computations()
-            self._compute_commands()
-            os.chdir(__start_path__)
 
     def _build_results_directory_tree_for_each(self, pdb):
         pdb_name = pdb.split('.')[0]
