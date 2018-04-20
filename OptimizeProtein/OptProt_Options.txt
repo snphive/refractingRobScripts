@@ -1,11 +1,11 @@
 ####ListPDBs you want analysed separated by comma's.
 ##All = All PDBs in de PDBs folder.
-PDBs:P53GammaSWISS.pdb;
+PDBs:Ab82b0sLigand.pdb;
 
 ####Program you want to run
 ##Stretchplot = Create plot representing the relative stability and total TANGO score or each APR
 ##Solubis = Do a gatekeeper scan over all APRs, mutate APR residues to gatekeeper residues
-##SolubisMild = Do a full scan over all APRs, mutate APR residues to every other residue. 
+##SolubisMild = Do a full scan over all APRs, mutate APR residues to every other residue.
 ##SolubisDouble = Do a gatekeeper scan over all APRs, mutate APR residues to gatekeeper residues. Mutate every residue to every residue to find stabilizers for solubis mutant.
 ##Stabilize = Mutate every residue to every residue
 ##Supercharge = Try to recursively find mutations that increase the netcharge, without disturbing the complex and the stability
@@ -13,7 +13,7 @@ PDBs:P53GammaSWISS.pdb;
 ##DelPos = Delete Positive residues
 ##Indiv = provided individual list
 ##All = All the above.
-Command:Stabilize;
+Command:Solubis;
 
 ####In the case of a Supercharge command.
 ## P = try to increase the Netcharge to get the molecule positive
