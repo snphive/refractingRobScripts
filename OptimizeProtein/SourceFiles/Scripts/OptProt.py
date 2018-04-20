@@ -68,16 +68,8 @@ class OptProt:
             subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
             self._run_repair_on_grid_engine(pdb_name)
 
-    def wait_for_repair_to_complete(self):
-        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
-        while 'RPjob_' in output_qstat:
-            print 'Waiting for PDBs to be repaired'
-            time.sleep(10)
-            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
-
     def perform_selected_computations(self):
+        self._wait_for_repair_to_complete()
         for PDB in self.__pdb_list__:
             self._build_results_directory_tree_for_each(PDB)
             self._compute_stretchplot(PDB)
@@ -85,6 +77,15 @@ class OptProt:
                 self._build_directory_tree_for_computations()
             self._compute_commands()
             os.chdir(__start_path__)
+
+    def _wait_for_repair_to_complete(self):
+        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+        output_qstat = check_qstat.stdout.read()
+        while 'RPjob_' in output_qstat:
+            print 'Waiting for PDBs to be repaired'
+            time.sleep(10)
+            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
+            output_qstat = check_qstat.stdout.read()
 
     # Called by parse_option_file() for:
     # 1. list of pdb names
