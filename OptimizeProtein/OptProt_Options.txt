@@ -1,6 +1,6 @@
 ####ListPDBs you want analysed separated by comma's.
 ##All = All PDBs in de PDBs folder.
-PDBs:Ab82b0sLigand.pdb;
+PDBs:P53GammaSWISS.pdb;
 
 ####Program you want to run
 ##Stretchplot = Create plot representing the relative stability and total TANGO score or each APR

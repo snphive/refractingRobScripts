@@ -18,6 +18,7 @@ class OptProt:
     __start_path__ = ''
     __scripts_path__ = ''
     __execute_python_and_path_to_script_fwdslash__ = ''
+    __execute_r_and_path_to_script_fwdslash__ = ''
     __molecules_and_paths_to_r_foldx_agadir__ = ''
     __molecules_and_paths_to_r_foldx_agadir_and_charge__ = ''
 
@@ -25,9 +26,12 @@ class OptProt:
         global __start_path__
         global __scripts_path__
         global __execute_python_and_path_to_script_fwdslash__
+        global __execute_r_and_path_to_script_fwdslash__
         __start_path__ = start_path
         __scripts_path__ = scripts_path
-        __execute_python_and_path_to_script_fwdslash__ = 'python ' + __scripts_path__ + '/'
+        self.__single_space__ = ' '
+        __execute_python_and_path_to_script_fwdslash__ = 'python' + self.__single_space__ + __scripts_path__ + '/'
+        __execute_r_and_path_to_script_fwdslash__ = 'R <' + self.__single_space__ + __scripts_path__ + '/'
         self.__pdb_list__ = []
         self.__command__ = ''
         self.__charge__ = ''
@@ -44,10 +48,11 @@ class OptProt:
         self.__parse_paths_for_r_foldx_agadir_qsub_from(__option_file__)
         global __molecules_and_paths_to_r_foldx_agadir__
         global __molecules_and_paths_to_r_foldx_agadir_and_charge__
-        __molecules_and_paths_to_r_foldx_agadir__ = ' ' + self.__molecules__ + ' ' + __r_path__ + ' ' + __foldx_path__ + \
-            ' ' + __agadir_path__
-        __molecules_and_paths_to_r_foldx_agadir_and_charge__ = __molecules_and_paths_to_r_foldx_agadir__ + ' ' + \
-            self.__charge__
+        __molecules_and_paths_to_r_foldx_agadir__ = self.__single_space__ + self.__molecules__ + self.__single_space__ \
+                                                    + __r_path__ + self.__single_space__ + __foldx_path__ + \
+                                                    self.__single_space__ + __agadir_path__
+        __molecules_and_paths_to_r_foldx_agadir_and_charge__ = __molecules_and_paths_to_r_foldx_agadir__ + \
+                                                    self.__single_space__ + self.__charge__
 
     # Tidies up each pdb file using Yasara functions.
     # Converts each pdb to fasta protein sequence via pdb2fasta.py.
@@ -129,33 +134,33 @@ class OptProt:
         global __agadir_path__
         global __qsub_path__
         for line in __option_file__:
-            if 'R_Path:' in line:
+            if 'R_Path' in line:
                 __r_path__ = line.split(':')[-1].strip(';\n')
-            if 'FoldX_Path:' in line:
+            if 'FoldX_Path' in line:
                 __foldx_path__ = line.split(':')[-1].strip(';\n')
-            if 'Agadir_Path:' in line:
+            if 'Agadir_Path' in line:
                 __agadir_path__ = line.split(':')[-1].strip(';\n')
             if 'Qsub_Path' in line:
                 __qsub_path__ = line.split(':')[-1].strip(';\n')
-        print 'Absolute path to R:\t\t' + __r_path__
-        print 'Absolute path to FoldX:\t\t' + __foldx_path__
-        print 'Absolute path to TANGO:\t\t' + __agadir_path__
-        print 'Absolute path to Qsub:\t\t' + __qsub_path__
+        self._print_Absolute_path_to('R', __r_path__)
+        self._print_Absolute_path_to('FoldX', __foldx_path__)
+        self._print_Absolute_path_to('TANGO', __agadir_path__)
+        self._print_Absolute_path_to('Qsub', __qsub_path__)
 
 # # # # Called by run_yasara_agadir_repair() # # # #
 
     def _run_yasara_to_organise_pdb(self, PDB, pdb_name):
         yasara.run('DelObj all')
-        yasara.run('LoadPDB ' + __start_path__ + '/PDBs/' + PDB)
+        yasara.run('LoadPDB' + self.__single_space__ + __start_path__ + '/PDBs/' + PDB)
         yasara.run('DelRes !Protein')
         tempMols = yasara.run('ListMol All,Format=MOLNAME')
         for mol in tempMols:
-            yasara.run('RenumberRes all and Mol ' + mol + ',First=1')
+            yasara.run('RenumberRes all and Mol' + self.__single_space__ + mol + ',First=1')
         yasara.run(
             'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + PDB + ',Format=PDB,Transform=Yes')
 
     def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, PDB):
-        cp_start_path = 'cp ' + __start_path__
+        cp_start_path = 'cp' + self.__single_space__ + __start_path__
         subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./PDBs/.', shell=True)
         subprocess.call(cp_start_path + '/PDBs/' + PDB + ' ./Repair/.', shell=True)
         subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
@@ -170,7 +175,7 @@ class OptProt:
         g.write('#$ -V\n')
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
-        g.write(__execute_python_and_path_to_script_fwdslash__ + repair_python_script + ' ' + __qsub_path__ + '\n')
+        g.write(__execute_python_and_path_to_script_fwdslash__ + repair_python_script + self.__single_space__ + __qsub_path__ + '\n')
         g.close()
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
@@ -179,9 +184,9 @@ class OptProt:
         pdb2fasta_python_script = 'pdb2fasta.py'
         agadir_python_script = 'agadir.py'
         self._print_OptProt_calling_script(pdb2fasta_python_script)
-        subprocess.call('python ' + __scripts_path__ + '/pdb2fasta.py', shell=True)
+        subprocess.call(__execute_python_and_path_to_script_fwdslash__ + pdb2fasta_python_script, shell=True)
         self._print_OptProt_calling_script(agadir_python_script)
-        subprocess.call('python ' + __scripts_path__ + '/agadir.py', shell=True)
+        subprocess.call(__execute_python_and_path_to_script_fwdslash__ + agadir_python_script, shell=True)
 
 # # # # Called by perform_selected_computations() # # # #
 
@@ -195,12 +200,14 @@ class OptProt:
             output_qstat = check_qstat.stdout.read()
 
     def _compute_stretchplot(self, PDB):
-        self._print_OptProt_calling_script('stretchplot.py')
+        stretchplot_python_script = 'stretchplot.py'
+        stretchplot_r_script = 'stretchplot.R'
+        self._print_OptProt_calling_script(stretchplot_python_script)
         subprocess.call(
-            'python ' + __scripts_path__ + '/stretchplot.py ' + __molecules_and_paths_to_r_foldx_agadir__,
-            shell=True)
-        self._print_OptProt_calling_script('stretchplot.R')
-        subprocess.call('R < ' + __scripts_path__ + '/stretchplot.R --no-save', shell=True)
+            __execute_python_and_path_to_script_fwdslash__ + stretchplot_python_script + self.__single_space__ +
+            __molecules_and_paths_to_r_foldx_agadir__, shell=True)
+        self._print_OptProt_calling_script(stretchplot_r_script)
+        subprocess.call(__execute_r_and_path_to_script_fwdslash__ + stretchplot_r_script + self.__single_space__ + '--no-save', shell=True)
 
     def _build_directory_tree_for_computations(self):
         if self.__command__ == 'All':
@@ -231,12 +238,11 @@ class OptProt:
             if self.__command__ == 'Supercharge' or self.__command__ == 'DelPos' or self.__command__ == 'Indiv':
                 subprocess.call(
                     __execute_python_and_path_to_script_fwdslash__ + python_script +
-                    __molecules_and_paths_to_r_foldx_agadir_and_charge__,
-                    shell=True)
+                    __molecules_and_paths_to_r_foldx_agadir_and_charge__, shell=True)
             else:
                 subprocess.call(
-                    __execute_python_and_path_to_script_fwdslash__ + python_script + __molecules_and_paths_to_r_foldx_agadir__,
-                    shell=True)
+                    __execute_python_and_path_to_script_fwdslash__ + python_script +
+                    __molecules_and_paths_to_r_foldx_agadir__, shell=True)
 
     def _convert_command_name_to_python_script_name(self, command):
         python_script_name = command
@@ -267,7 +273,10 @@ class OptProt:
                 os.makedirs(folder_name)
 
     def _print_OptProt_calling_script(self, python_script):
-        print 'OptProt.py calling ' + python_script + '....'
+        print 'OptProt.py calling ' + python_script + '.......'
+
+    def _print_Absolute_path_to(self, target, path_to_target):
+        print 'Absolute path to ' + target + ':' + '\t\t' + path_to_target
 
 
 # pydevd.stoptrace()
