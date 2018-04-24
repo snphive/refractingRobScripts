@@ -23,8 +23,7 @@ aa_dict_3to1 = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY
 
 starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-# gatekeepers = ['R', 'P', 'K', 'E', 'D']
-gatekeepers = ['R'] # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
+gatekeepers = ['R', 'P', 'K', 'E', 'D']
 name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
 print name
 agadirs = []
@@ -129,13 +128,13 @@ while 'SB_' in output_qstat:
 	time.sleep(10)
 	check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
 	output_qstat = check_qstat.stdout.read()
-# ListOfSolubisMutationResultsFolders
+# ListOfSolubisMutationResultsFolders - possible new names for variables
 dirs = sorted(glob.glob('./*'))
 name_agad = name
 print 'Name agad:\t' + name_agad
 name = 'RepairPDB_' + name
 print 'Name:\t' + name
-# SolubisMutationResultsFolder
+# SolubisMutationResultsFolder  - possible new names for variables
 for path in dirs:
 	if os.path.isdir(path):
 		os.chdir(path.split('/')[-1])
