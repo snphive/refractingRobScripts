@@ -66,12 +66,12 @@ class OptProt:
     def run_yasara_agadir_repair(self):
         if not os.path.exists('Results'):
             os.makedirs('Results')
-        for PDB in self.__pdb_list__:
-            pdb_name = PDB.split('.')[0]
-            self._build_results_directory_tree_for_each(PDB)
+        for pdb in self.__pdb_list__:
+            pdb_name = pdb.split('.')[0]
+            self._build_results_directory_tree_for_each(pdb)
             # current directory is the pdb subfolder of the Results folder
-            self._run_yasara_to_organise_pdb(PDB, pdb_name)
-            self._copy_pdb_foldx_agadir_files_to_new_subdirectories(PDB)
+            self._run_yasara_to_organise_pdb(pdb, pdb_name)
+            self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
 
@@ -89,7 +89,7 @@ class OptProt:
 
     # # # # # # Called by parse_option_file() # # # # #
 
-    # 1. returns list of pdb names from option file.
+    # 1. Assigns to object variables the list of pdb names specified in the option file.
     def __parse_optionfile_for_pdblist(self, __option_file__):
         self.__pdb_list__ = []
         for line in __option_file__:
@@ -97,9 +97,9 @@ class OptProt:
                 continue
             if 'PDBs:' in line:
                 if line.split(':')[-1].strip(';\n') == "All":
-                    pdbpaths = glob.glob('./PDBs/*.pdb')
-                    for pdbpath in pdbpaths:
-                        pdb_temp = pdbpath.split('/')[-1]
+                    pdb_paths = glob.glob('./PDBs/*.pdb')
+                    for pdb_path in pdb_paths:
+                        pdb_temp = pdb_path.split('/')[-1]
                         self.__pdb_list__.append(pdb_temp)
                 pdb_string = line.split(':')[-1].strip(';\n')
                 if ',' in pdb_string:
@@ -110,7 +110,8 @@ class OptProt:
                     self.__pdb_list__.append(pdb_string)
         print 'PDBs to analyse:\t\t' + ",\t".join(self.__pdb_list__)
 
-    # 2. returns computation names ("command"), charge, protein chains ("molecules") from option file.
+    # 2. Assigns to object variables the computation names ("command"), charge, protein chains ("molecules") specified
+    # in the option file.
     def __parse_optionfile_for_computations_charge_mols(self, __option_file__):
         for line in __option_file__:
             if '#' in line:
@@ -121,18 +122,19 @@ class OptProt:
                 self.__charge__ = line.split(':')[-1].strip(';\n')
             if 'Mols:' in line:
                 self.__molecules__ = []
-                MolString = line.split(':')[-1].strip(';\n')
-                if ',' in MolString:
-                    Mols_temp = MolString.split(',')
-                    for Mols_temp in Mols_temp:
-                        self.__molecules__.append(Mols_temp)
+                mol_string = line.split(':')[-1].strip(';\n')
+                if ',' in mol_string:
+                    mols_temp = mol_string.split(',')
+                    for mol_temp in mols_temp:
+                        self.__molecules__.append(mol_temp)
                     self.__molecules__ = "_".join(self.__molecules__)
                 else:
-                    self.__molecules__ = MolString
+                    self.__molecules__ = mol_string
         print 'Command to be executed:\t\t' + self.__command__
         print 'Molecules to be considered:\t' + self.__molecules__
 
-    # 3. returns absolute paths to all required software and to the grid engine executables from option file.
+    # 3. Assigns to global variables the absolute paths to all required software and to the grid engine executables
+    # specified in the option file.
     def __parse_optionfile_for_paths_to_r_foldx_agadir_qsub(self, __option_file__):
         global __r_path__
         global __foldx_path__
@@ -147,10 +149,10 @@ class OptProt:
                 __agadir_path__ = line.split(':')[-1].strip(';\n')
             if 'Qsub_Path' in line:
                 __qsub_path__ = line.split(':')[-1].strip(';\n')
-        self._print_Absolute_path_to('R', __r_path__)
-        self._print_Absolute_path_to('FoldX', __foldx_path__)
-        self._print_Absolute_path_to('TANGO', __agadir_path__)
-        self._print_Absolute_path_to('Qsub', __qsub_path__)
+        self._print_absolute_path_to('R', __r_path__)
+        self._print_absolute_path_to('FoldX', __foldx_path__)
+        self._print_absolute_path_to('TANGO', __agadir_path__)
+        self._print_absolute_path_to('Qsub', __qsub_path__)
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
@@ -285,5 +287,6 @@ class OptProt:
 
     def _print_absolute_path_to(self, target, path_to_target):
         print 'Absolute path to ' + target + ':' + '\t\t' + path_to_target
+
 
 # pydevd.stoptrace()
