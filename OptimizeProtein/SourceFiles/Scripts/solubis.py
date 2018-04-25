@@ -23,9 +23,10 @@ aa_dict_3to1 = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY
 
 starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-gatekeepers = ['R', 'P', 'K', 'E', 'D']
-name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
-print name
+# gatekeepers = ['R', 'P', 'K', 'E', 'D']
+gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
+pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
+print pdb_name
 agadirs = []
 totals = []
 total_pdb = 0
@@ -33,9 +34,9 @@ os.chdir('Runs/Solubis')
 indiv = open('individual_list.txt', 'w')
 index_program = 0
 for mol in Mols:
-	f = open(starting_directory + '/Agadir/' + name + '_' + mol + '/PSX_globaltotal.out', 'r').readlines()
+	f = open(starting_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_globaltotal.out', 'r').readlines()
 	header_for_PSX_globaltotal_table = f[0].split()
-	old_fasta_lines = open(starting_directory + '/Fasta/' + name + '_' + mol + '.fasta', 'r').readlines()
+	old_fasta_lines = open(starting_directory + '/Fasta/' + pdb_name + '_' + mol + '.fasta', 'r').readlines()
 	old_fasta = []
 	if len(old_fasta_lines) == 2:
 		for a in old_fasta_lines[1]:
@@ -52,7 +53,7 @@ for mol in Mols:
 	totals.append(total)
 	total_pdb = total_pdb + float(total)
 	# get stretches
-	f = open(starting_directory + '/Agadir/' + name + '_' + mol + '/PSX_tangowindow.out', 'r').readlines()
+	f = open(starting_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_tangowindow.out', 'r').readlines()
 	stretches = []
 	for line in f[1:]:
 		new_stretches = []
@@ -80,15 +81,15 @@ for mol in Mols:
 					os.makedirs('Agadir')
 				if not os.path.exists('Agadir/Options.txt'):
 					subprocess.call('cp ' + starting_directory + '/../../SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
-				if os.path.exists(starting_directory + '/Repair/RepairPDB_' + name + '.pdb'):
-					subprocess.call('cp ' + starting_directory + '/Repair/RepairPDB_' + name + '.pdb .', shell=True)
+				if os.path.exists(starting_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
+					subprocess.call('cp ' + starting_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
 					subprocess.call('cp ' + starting_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
 				else:
 					print 'Something is wrong'
 				f = open('runscript.txt','w')
 				f.write('<TITLE>FOLDX_runscript;\n')
 				f.write('<JOBSTART>#;\n')
-				f.write('<PDBS>RepairPDB_' + name + '.pdb;\n')
+				f.write('<PDBS>RepairPDB_' + pdb_name + '.pdb;\n')
 				f.write('<BATCH>#;\n')
 				f.write('<COMMANDS>FOLDX_commandfile;\n')
 				f.write('<BuildModel>#,individual_list.txt;\n')
@@ -128,13 +129,13 @@ while 'SB_' in output_qstat:
 	time.sleep(10)
 	check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
 	output_qstat = check_qstat.stdout.read()
-# ListOfSolubisMutationResultsFolders - possible new names for variables
+# ListOfSolubisMutationResultsFolders
 dirs = sorted(glob.glob('./*'))
-name_agad = name
+name_agad = pdb_name
 print 'Name agad:\t' + name_agad
-name = 'RepairPDB_' + name
-print 'Name:\t' + name
-# SolubisMutationResultsFolder  - possible new names for variables
+pdb_name = 'RepairPDB_' + pdb_name
+print 'Name:\t' + pdb_name
+# SolubisMutationResultsFolder
 for path in dirs:
 	if os.path.isdir(path):
 		os.chdir(path.split('/')[-1])
@@ -144,8 +145,8 @@ for path in dirs:
 		f = open('runscript.txt', 'w')
 		f.write('<TITLE>FOLDX_runscript;\n')
 		f.write('<JOBSTART>#;\n')
-		f.write('<PDBS>' + name + '_1_0.pdb,' + name + '_1_1.pdb,' + name + '_1_2.pdb,WT_' + name + '_1_0.pdb,WT_'
-				+ name + '_1_1.pdb,WT_' + name + '_1_2.pdb,;\n')
+		f.write('<PDBS>' + pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + '_1_0.pdb,WT_'
+				+ pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,;\n')
 		f.write('<BATCH>#;\n')
 		f.write('<COMMANDS>FOLDX_commandfile;\n')
 		f.write('<AnalyseComplex>#;\n')
@@ -162,7 +163,7 @@ for path in dirs:
 		f.write('<JOBEND>#;\n')
 		f.write('<ENDFILE>#;\n')
 		f.close()
-		pdb = name + '_1_0.pdb'
+		pdb = pdb_name + '_1_0.pdb'
 		print os.getcwd()
 		f = open(pdb).readlines()
 		atomlines = []
@@ -182,10 +183,10 @@ for path in dirs:
 					aa = line[17:20]
 					fastalist.append(aa_dict_3to1[aa])
 			fasta = "".join(fastalist)
-			print name + '_' + mol
+			print pdb_name + '_' + mol
 			print fasta
-			f = open('Fasta/' + name + '_' + mol + '.fasta', 'w')
-			f.write('>' + name + '_' + mol + '\n')
+			f = open('Fasta/' + pdb_name + '_' + mol + '.fasta', 'w')
+			f.write('>' + pdb_name + '_' + mol + '\n')
 			f.write(fasta)
 			f.close()
 		g = open('./job.q', 'w')
@@ -213,9 +214,9 @@ os.chdir(starting_directory)
 g = open('SummarySolubis.txt', 'w')
 g.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
 analyseComplex = False
-if os.path.isfile('./Repair/Interaction_AnalyseComplex_' + name + '.fxout'):
+if os.path.isfile('./Repair/Interaction_AnalyseComplex_' + pdb_name + '.fxout'):
 	analyseComplex = True
-	h = open('./Repair/Interaction_AnalyseComplex_' + name + '.fxout').readlines()
+	h = open('./Repair/Interaction_AnalyseComplex_' + pdb_name + '.fxout').readlines()
 	Interactions = []
 	for line in h[9:]:
 		pieces = line.split('\t')
@@ -248,7 +249,7 @@ for path in dirs:
 	if os.path.isdir(path):
 		mut = path.split('/')[-1]
 		mol = mut[1]
-		f = open(path + '/Average_BuildModel_' + name + '.fxout', 'r').readlines()
+		f = open(path + '/Average_BuildModel_' + pdb_name + '.fxout', 'r').readlines()
 		ddG = f[9].split()[2]
 		path_agad_list = glob.glob(path + '/Agadir/*')
 		TangoMut = 0
@@ -265,27 +266,27 @@ for path in dirs:
 		print f[1]
 		mol = mut[1]
 		if analyseComplex:
-			f = open(path + '/Interaction_AnalyseComplex_' + name + '_1_0.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_0.fxout', 'r').readlines()
 			complex_Mut1 = []
 			for line in f[9:]:
 					complex_Mut1.append(float(line.split()[5]))
-			f = open(path + '/Interaction_AnalyseComplex_' + name + '_1_1.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_1.fxout', 'r').readlines()
 			complex_Mut2 = []
 			for line in f[9:]:
 					complex_Mut2.append(float(line.split()[5]))
-			f = open(path + '/Interaction_AnalyseComplex_' + name + '_1_2.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_2.fxout', 'r').readlines()
 			complex_Mut3 = []
 			for line in f[9:]:
 					complex_Mut3.append(float(line.split()[5]))
-			f = open(path + '/Interaction_AnalyseComplex_WT_' + name + '_1_0.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_0.fxout', 'r').readlines()
 			complex_WT1 = []
 			for line in f[9:]:
 					complex_WT1.append(float(line.split()[5]))
-			f = open(path + '/Interaction_AnalyseComplex_WT_' + name + '_1_1.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_1.fxout', 'r').readlines()
 			complex_WT2 = []
 			for line in f[9:]:
 					complex_WT2.append(float(line.split()[5]))
-			f = open(path + '/Interaction_AnalyseComplex_WT_' + name + '_1_2.fxout', 'r').readlines()
+			f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_2.fxout', 'r').readlines()
 			complex_WT3 = []
 			for line in f[9:]:
 					complex_WT3.append(float(line.split()[5]))
