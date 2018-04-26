@@ -3,6 +3,7 @@ import glob
 import subprocess
 import time
 from OptimizeProtein import yasara
+import yaml
 
 # import pydevd
 # pydevd.settrace('localhost', port=51234, stdoutToServer=True, stderrToServer=True)
@@ -153,6 +154,14 @@ class OptProt:
         self._print_absolute_path_to('FoldX', __foldx_path__)
         self._print_absolute_path_to('TANGO', __agadir_path__)
         self._print_absolute_path_to('Qsub', __qsub_path__)
+        # showing how I can import and use the config yaml.. more to do to replace hardcoded paths and interplay with options file
+        with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml", 'r') as stream:
+            try:
+                paths_and_dictionaries = yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+
+        print(paths_and_dictionaries['ROOT']['R_Path'])
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 

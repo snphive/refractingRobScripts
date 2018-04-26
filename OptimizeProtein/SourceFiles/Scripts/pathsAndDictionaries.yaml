@@ -1,0 +1,53 @@
+ROOT:
+    R_Path: '/software/shared/apps/general/R/3.1.2/bin/Rscript'
+    FoldX_Path: '/switchlab/group/tools/FoldX_2015/FoldX'
+    Agadir_Path: '/switchlab/group/tools/agadir_10042012/agadirwrapper'
+    Qsub_Path: '/opt/sge/bin/lx-amd64/'
+    aa_dict_1to3:
+        A: ALA
+        C: CYS
+        D: ASP
+        E: GLU
+        F: PHE
+        G: GLY
+        H: HIS
+        I: ILE
+        K: LYS
+        L: LEU
+        M: MET
+        N: ASN
+        P: PRO
+        Q: GLN
+        R: ARG
+        S: SER
+        T: THR
+        V: VAL
+        W: TRP
+        Y: TYR
+    aa_dict_3to1:
+        ALA: A
+        CYS: C
+        ASP: D
+        GLU: E
+        PHE: F
+        GLY: G
+        HIS: H
+        H1S: H
+        H2S: H
+        ILE: I
+        LYS: K
+        LEU: L
+        MET: M
+        ASN: N
+        PRO: P
+        GLN: Q
+        ARG: R
+        SER: S
+        THR: T
+        VAL: V
+        TRP: W
+        TYR: Y
+    SOMELIST:
+        - v1
+        - v2
+
