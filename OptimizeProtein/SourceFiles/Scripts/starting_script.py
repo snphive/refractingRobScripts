@@ -1,12 +1,10 @@
 from OptProt import OptProt
 import yaml
 
-option_file = open('./OptProt_Options.txt', 'r').readlines()
 opt_prot_instance = ''
 
 with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
-                  'r') as stream:
-
+          'r') as stream:
     try:
 
         paths_and_dictionaries = yaml.load(stream)
@@ -21,6 +19,6 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
     except yaml.YAMLError as exc:
         print(exc)
 
-opt_prot_instance.parse_option_file(option_file)
+opt_prot_instance.parse_option_file(open('./OptProt_Options.txt', 'r').readlines())
 opt_prot_instance.run_yasara_agadir_repair()
 opt_prot_instance.perform_selected_computations()
