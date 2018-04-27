@@ -6,6 +6,7 @@ ROOT:
 
     start_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy'
     scripts_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts'
+    results_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy/Results'
 
     aa_dict_1to3:
         A: ALA
@@ -51,7 +52,10 @@ ROOT:
         VAL: V
         TRP: W
         TYR: Y
-    SOMELIST:
-        - v1
-        - v2
 
+    gatekeepers:
+        - R
+        - P
+        - K
+        - E
+        - D
