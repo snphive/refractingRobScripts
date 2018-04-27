@@ -28,13 +28,21 @@ class OptProt:
     __molecules_and_paths_to_r_foldx_agadir__ = ''
     __molecules_and_paths_to_r_foldx_agadir_and_charge__ = ''
 
-    def __init__(self, start_path, scripts_path):
+    def __init__(self, start_path, scripts_path, r_path, foldx_path, agadir_path, qsub_path):
         global __start_path__
         global __scripts_path__
+        global __r_path__
+        global __foldx_path__
+        global __agadir_path__
+        global __qsub_path__
         global __execute_python_and_path_to_script_fwdslash__
         global __execute_r_and_path_to_script_fwdslash__
         __start_path__ = start_path
         __scripts_path__ = scripts_path
+        __r_path__ =r_path
+        __foldx_path__ = foldx_path
+        __agadir_path__ = agadir_path
+        __qsub_path__ = qsub_path
         self.__single_space__ = ' '
         __execute_python_and_path_to_script_fwdslash__ = 'python' + self.__single_space__ + __scripts_path__ + '/'
         __execute_r_and_path_to_script_fwdslash__ = 'R <' + self.__single_space__ + __scripts_path__ + '/'
@@ -137,31 +145,32 @@ class OptProt:
     # 3. Assigns to global variables the absolute paths to all required software and to the grid engine executables
     # specified in the option file.
     def __parse_optionfile_for_paths_to_r_foldx_agadir_qsub(self, __option_file__):
-        global __r_path__
-        global __foldx_path__
-        global __agadir_path__
-        global __qsub_path__
-        for line in __option_file__:
-            if 'R_Path' in line:
-                __r_path__ = line.split(':')[-1].strip(';\n')
-            if 'FoldX_Path' in line:
-                __foldx_path__ = line.split(':')[-1].strip(';\n')
-            if 'Agadir_Path' in line:
-                __agadir_path__ = line.split(':')[-1].strip(';\n')
-            if 'Qsub_Path' in line:
-                __qsub_path__ = line.split(':')[-1].strip(';\n')
+        # global __r_path__
+        # global __foldx_path__
+        # global __agadir_path__
+        # global __qsub_path__
+        #
+        # with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml", 'r') as stream:
+        #     try:
+        #         paths_and_dictionaries = yaml.load(stream)
+        #     except yaml.YAMLError as exc:
+        #         print(exc)
+        #
+        # print(paths_and_dictionaries['ROOT']['R_Path'])
+        #
+        # for line in __option_file__:
+        #     if 'R_Path' in line:
+        #         __r_path__ = line.split(':')[-1].strip(';\n')
+        #     if 'FoldX_Path' in line:
+        #         __foldx_path__ = line.split(':')[-1].strip(';\n')
+        #     if 'Agadir_Path' in line:
+        #         __agadir_path__ = line.split(':')[-1].strip(';\n')
+        #     if 'Qsub_Path' in line:
+        #         __qsub_path__ = line.split(':')[-1].strip(';\n')
         self._print_absolute_path_to('R', __r_path__)
         self._print_absolute_path_to('FoldX', __foldx_path__)
         self._print_absolute_path_to('TANGO', __agadir_path__)
         self._print_absolute_path_to('Qsub', __qsub_path__)
-        # showing how I can import and use the config yaml.. more to do to replace hardcoded paths and interplay with options file
-        with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml", 'r') as stream:
-            try:
-                paths_and_dictionaries = yaml.load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-        print(paths_and_dictionaries['ROOT']['R_Path'])
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
@@ -192,7 +201,8 @@ class OptProt:
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
         g.write(
-            __execute_python_and_path_to_script_fwdslash__ + repair_python_script + self.__single_space__ + __qsub_path__ + '\n')
+            __execute_python_and_path_to_script_fwdslash__ + repair_python_script + self.__single_space__
+            + __qsub_path__ + '\n')
         g.close()
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)

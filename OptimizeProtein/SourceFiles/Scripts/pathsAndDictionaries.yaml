@@ -1,8 +1,12 @@
 ROOT:
-    R_Path: '/software/shared/apps/general/R/3.1.2/bin/Rscript'
-    FoldX_Path: '/switchlab/group/tools/FoldX_2015/FoldX'
-    Agadir_Path: '/switchlab/group/tools/agadir_10042012/agadirwrapper'
-    Qsub_Path: '/opt/sge/bin/lx-amd64/'
+    R_path: '/software/shared/apps/general/R/3.1.2/bin/Rscript'
+    FoldX_path: '/switchlab/group/tools/FoldX_2015/FoldX'
+    Agadir_path: '/switchlab/group/tools/agadir_10042012/agadirwrapper'
+    Qsub_path: '/opt/sge/bin/lx-amd64/'
+
+    start_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy'
+    scripts_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts'
+
     aa_dict_1to3:
         A: ALA
         C: CYS
