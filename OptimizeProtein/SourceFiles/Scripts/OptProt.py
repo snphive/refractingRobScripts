@@ -3,7 +3,6 @@ import glob
 import subprocess
 import time
 from OptimizeProtein import yasara
-import yaml
 
 # import pydevd
 # pydevd.settrace('localhost', port=51234, stdoutToServer=True, stderrToServer=True)
