@@ -3,7 +3,7 @@ import os
 import sys
 import glob
 import subprocess
-import time
+import GeneralUtilityMethods
 from OptimizeProtein import yasara
 import yaml
 
@@ -47,13 +47,13 @@ pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
 gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
 pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
 results_pdb_directory = results_directory + '/' + pdb_name
-results_pdb_Runs_Solubis_directory = results_pdb_directory +'Runs/Solubis'
+results_pdb_Runs_Solubis_directory = results_pdb_directory + '/Runs/Solubis'
 print pdb_name
 agadirs = []
 totals = []
 total_pdb = 0
 
-# os.chdir('Runs/Solubis')
+os.chdir('Runs/Solubis')
 os.chdir(results_pdb_Runs_Solubis_directory)
 
 indiv = open('individual_list.txt', 'w')
@@ -148,13 +148,10 @@ for mol in Mols:
                 os.chdir('./..')
 
 indiv.close()
-check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
-output_qstat = check_qstat.stdout.read()
-while 'SB_' in output_qstat:
-    print 'Waiting for all Solubis jobs to finish'
-    time.sleep(10)
-    check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
-    output_qstat = check_qstat.stdout.read()
+
+
+GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('SB_', 'all Solubis jobs to finish')
+
 # ListOfSolubisMutationResultsFolders
 dirs = sorted(glob.glob('./*'))
 name_agad = pdb_name
@@ -230,13 +227,8 @@ for path in dirs:
     else:
         print path
 
-check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
-output_qstat = check_qstat.stdout.read()
-while 'AC_' in output_qstat:
-    print 'Waiting for all AnalyseComplex jobs to finish'
-    time.sleep(10)
-    check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
-    output_qstat = check_qstat.stdout.read()
+GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('AC_', 'all AnalyseComplex jobs to finish')
+
 os.chdir(results_pdb_directory)
 g = open('SummarySolubis.txt', 'w')
 g.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
