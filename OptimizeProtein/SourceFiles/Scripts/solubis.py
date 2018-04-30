@@ -18,8 +18,8 @@ r_path = ''
 foldx_path = ''
 agadir_path = ''
 qsub_path = ''  # don't think this is needed so may remove it.. (from repair.py too)
-starting_directory = ''
 results_directory = ''
+results_pdb_directory = ''
 aa_dict_1to3 = {}
 aa_dict_3to1 = {}
 gatekeepers = []
@@ -41,31 +41,27 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
     except yaml.YAMLError as exc:
         print(exc)
 
-# aa_dict_1to3 = {'A': 'ALA', 'C': 'CYS', 'D': 'ASP', 'E': 'GLU', 'F': 'PHE', 'G': 'GLY', 'H': 'HIS', 'I': 'ILE',
-# 				'K': 'LYS', 'L': 'LEU', 'M': 'MET', 'N': 'ASN', 'P': 'PRO', 'Q': 'GLN', 'R': 'ARG', 'S': 'SER',
-# 				'T': 'THR', 'V': 'VAL', 'W': 'TRP', 'Y': 'TYR'}
-# aa_dict_3to1 = {'ALA': 'A', 'CYS': 'C', 'ASP': 'D', 'GLU': 'E', 'PHE': 'F', 'GLY': 'G', 'HIS': 'H', 'H1S': 'H',
-# 				'H2S': 'H', 'ILE': 'I', 'LYS': 'K', 'LEU': 'L', 'MET': 'M', 'ASN': 'N', 'PRO': 'P', 'GLN': 'Q',
-# 				'ARG': 'R', 'SER': 'S', 'THR': 'T', 'VAL': 'V', 'TRP': 'W', 'TYR': 'Y'}
-
-
 # starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
 # gatekeepers = ['R', 'P', 'K', 'E', 'D']
 gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
 pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
-starting_directory = results_directory + '/' + pdb_name
+results_pdb_directory = results_directory + '/' + pdb_name
+results_pdb_Runs_Solubis_directory = results_pdb_directory +'Runs/Solubis'
 print pdb_name
 agadirs = []
 totals = []
 total_pdb = 0
-os.chdir('Runs/Solubis')
+
+# os.chdir('Runs/Solubis')
+os.chdir(results_pdb_Runs_Solubis_directory)
+
 indiv = open('individual_list.txt', 'w')
 index_program = 0
 for mol in Mols:
-    f = open(starting_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_globaltotal.out', 'r').readlines()
+    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_globaltotal.out', 'r').readlines()
     header_for_PSX_globaltotal_table = f[0].split()
-    old_fasta_lines = open(starting_directory + '/Fasta/' + pdb_name + '_' + mol + '.fasta', 'r').readlines()
+    old_fasta_lines = open(results_pdb_directory + '/Fasta/' + pdb_name + '_' + mol + '.fasta', 'r').readlines()
     old_fasta = []
     if len(old_fasta_lines) == 2:
         for a in old_fasta_lines[1]:
@@ -82,7 +78,7 @@ for mol in Mols:
     totals.append(total)
     total_pdb = total_pdb + float(total)
     # get stretches
-    f = open(starting_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_tangowindow.out', 'r').readlines()
+    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_tangowindow.out', 'r').readlines()
     stretches = []
     for line in f[1:]:
         new_stretches = []
@@ -109,11 +105,11 @@ for mol in Mols:
                 if not os.path.exists('Agadir'):
                     os.makedirs('Agadir')
                 if not os.path.exists('Agadir/Options.txt'):
-                    subprocess.call('cp ' + starting_directory + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
+                    subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
                                     shell=True)
-                if os.path.exists(starting_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
-                    subprocess.call('cp ' + starting_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
-                    subprocess.call('cp ' + starting_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
+                if os.path.exists(results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
+                    subprocess.call('cp ' + results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
+                    subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
                 else:
                     print 'Something is wrong'
                 f = open('runscript.txt', 'w')
@@ -227,7 +223,7 @@ for path in dirs:
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
         g.write(foldx_path + ' -runfile runscript.txt\n')
-        g.write('python ' + starting_directory + '/../../SourceFiles/Scripts/agadir.py\n')
+        g.write('python ' + results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py\n')
         g.close()
         subprocess.call('qsub job.q', shell=True)
         os.chdir('./..')
@@ -241,7 +237,7 @@ while 'AC_' in output_qstat:
     time.sleep(10)
     check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
     output_qstat = check_qstat.stdout.read()
-os.chdir(starting_directory)
+os.chdir(results_pdb_directory)
 g = open('SummarySolubis.txt', 'w')
 g.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
 analyseComplex = False
