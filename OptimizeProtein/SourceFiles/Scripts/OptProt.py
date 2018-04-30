@@ -1,7 +1,7 @@
 import os
 import glob
 import subprocess
-import time
+import GeneralUtilityMethods
 from OptimizeProtein import yasara
 
 # import pydevd
@@ -12,9 +12,9 @@ yasara.info.mode = 'txt'
 
 # The original OptProt script was designed as a type of main script that is responsible for determining which
 # calculations will be made on which pdbs, based on reading in and parsing the options file.
-# It includes steps that are necessary precursors to any of our protein structural and aggregation propensity
-# calculations. This includes utilising yasara to clean up the pdb file.
-class OptProt:
+# It includes preparatory steps for calculating protein structural and aggregation propensity properties,
+# using Yasara functions. It also includes calls to FoldX to perform repair of the structure data.
+class OptProt(object):
     # declare all global variables
     __r_path__ = ''
     __foldx_path__ = ''
@@ -24,8 +24,8 @@ class OptProt:
     __scripts_path__ = ''
     __execute_python_and_path_to_script_fwdslash__ = ''
     __execute_r_and_path_to_script_fwdslash__ = ''
-    __molecules_and_paths_to_r_foldx_agadir__ = ''
-    __molecules_and_paths_to_r_foldx_agadir_and_charge__ = ''
+    __proteinChains_and_paths_to_r_foldx_agadir__ = ''
+    __proteinChains_and_paths_to_r_foldx_agadir_and_charge__ = ''
 
     def __init__(self, start_path, scripts_path, r_path, foldx_path, agadir_path, qsub_path):
         global __start_path__
@@ -38,7 +38,7 @@ class OptProt:
         global __execute_r_and_path_to_script_fwdslash__
         __start_path__ = start_path
         __scripts_path__ = scripts_path
-        __r_path__ =r_path
+        __r_path__ = r_path
         __foldx_path__ = foldx_path
         __agadir_path__ = agadir_path
         __qsub_path__ = qsub_path
@@ -48,7 +48,7 @@ class OptProt:
         self.__pdb_list__ = []
         self.__command__ = ''
         self.__charge__ = ''
-        self.__molecules__ = ''
+        self.__proteinChains__ = ''
         self._print_absolute_path_to('R', __r_path__)
         self._print_absolute_path_to('FoldX', __foldx_path__)
         self._print_absolute_path_to('TANGO', __agadir_path__)
@@ -57,17 +57,17 @@ class OptProt:
     # Extracts instructions from the option file.
     # This includes which computations to run & which proteins to run them on in 2 parts:
     # 1. list of pdb names
-    # 2. computation names ("command"), charge, protein chains ("molecules")
+    # 2. computation names ("command"), charge, protein chains
     def parse_option_file(self, __option_file__):
         self.__parse_optionfile_for_pdblist(__option_file__)
-        self.__parse_optionfile_for_computations_charge_mols(__option_file__)
-        global __molecules_and_paths_to_r_foldx_agadir__
-        global __molecules_and_paths_to_r_foldx_agadir_and_charge__
-        __molecules_and_paths_to_r_foldx_agadir__ = self.__single_space__ + self.__molecules__ + self.__single_space__ \
-                                                    + __r_path__ + self.__single_space__ + __foldx_path__ + \
-                                                    self.__single_space__ + __agadir_path__
-        __molecules_and_paths_to_r_foldx_agadir_and_charge__ = __molecules_and_paths_to_r_foldx_agadir__ + \
-                                                               self.__single_space__ + self.__charge__
+        self.__parse_optionfile_for_computations_charge_proteinChains(__option_file__)
+        global __proteinChains_and_paths_to_r_foldx_agadir__
+        global __proteinChains_and_paths_to_r_foldx_agadir_and_charge__
+        __proteinChains_and_paths_to_r_foldx_agadir__ = self.__single_space__ + self.__proteinChains__ + \
+            self.__single_space__ + __r_path__ + self.__single_space__ + __foldx_path__ + self.__single_space__ + \
+            __agadir_path__
+        __proteinChains_and_paths_to_r_foldx_agadir_and_charge__ = __proteinChains_and_paths_to_r_foldx_agadir__ + \
+            self.__single_space__ + self.__charge__
 
     # Tidies up each pdb file using Yasara functions.
     # Converts each pdb to fasta protein sequence via pdb2fasta.py.
@@ -83,9 +83,9 @@ class OptProt:
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
+        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('RPJob_', 'PDBs to be repaired')
 
     def perform_selected_computations(self):
-        self._wait_for_repair_to_complete()
         for pdb in self.__pdb_list__:
             self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
             self._compute_stretchplot(pdb)
@@ -119,9 +119,9 @@ class OptProt:
                     self.__pdb_list__.append(pdb_string)
         print 'PDBs to analyse:\t\t' + ",\t".join(self.__pdb_list__)
 
-    # 2. Assigns to object variables the computation names ("command"), charge, protein chains ("molecules") specified
+    # 2. Assigns to object variables the computation names ("command"), charge, protein chains specified
     # in the option file.
-    def __parse_optionfile_for_computations_charge_mols(self, __option_file__):
+    def __parse_optionfile_for_computations_charge_proteinChains(self, __option_file__):
         for line in __option_file__:
             if '#' in line:
                 continue
@@ -129,21 +129,23 @@ class OptProt:
                 self.__command__ = line.split(':')[-1].strip(';\n')
             if 'Charge:' in line:
                 self.__charge__ = line.split(':')[-1].strip(';\n')
-            if 'Mols:' in line:
-                self.__molecules__ = []
-                mol_string = line.split(':')[-1].strip(';\n')
-                if ',' in mol_string:
-                    mols_temp = mol_string.split(',')
-                    for mol_temp in mols_temp:
-                        self.__molecules__.append(mol_temp)
-                    self.__molecules__ = "_".join(self.__molecules__)
+            if 'Protein Chains:' in line:
+                self.__proteinChains__ = []
+                protein_chains_string = line.split(':')[-1].strip(';\n')
+                if ',' in protein_chains_string:
+                    protein_chains_temp = protein_chains_string.split(',')
+                    for protein_chain_temp in protein_chains_temp:
+                        self.__proteinChains__.append(protein_chain_temp)
+                    self.__proteinChains__ = "_".join(self.__proteinChains__)
                 else:
-                    self.__molecules__ = mol_string
+                    self.__proteinChains__ = protein_chains_string
         print 'Command to be executed:\t\t' + self.__command__
-        print 'Molecules to be considered:\t' + self.__molecules__
+        print 'Protein chains to be considered:\t' + self.__proteinChains__
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
+    # Yasara uses the term molecule to describe protein chain, so the variable names in this method are mol instead of
+    # protein_chain
     def _run_yasara_to_organise_pdb(self, pdb, pdb_name):
         yasara.run('DelObj all')
         yasara.run('LoadPDB' + self.__single_space__ + __start_path__ + '/PDBs/' + pdb)
@@ -153,6 +155,7 @@ class OptProt:
             yasara.run('RenumberRes all and Mol' + self.__single_space__ + mol + ',First=1')
         yasara.run(
             'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + pdb + ',Format=PDB,Transform=Yes')
+
 
     def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, pdb):
         cp_start_path = 'cp' + self.__single_space__ + __start_path__
@@ -164,18 +167,19 @@ class OptProt:
     def _run_repair_on_grid_engine(self, pdb_name):
         repair_python_script = 'repair.py'
         self._print_OptProt_calling_script(repair_python_script)
-        g = open('./job.q', 'w')
-        g.write('#!/bin/bash\n')
-        g.write('#$ -N RPjob_' + pdb_name + '\n')
-        g.write('#$ -V\n')
-        g.write('#$ -cwd\n')
-        g.write('source ~/.bash_profile\n')
-        g.write(
+        job_q_repair_script = open('./job.q', 'w')
+        job_q_repair_script.write('#!/bin/bash\n')
+        job_q_repair_script.write('#$ -N RPjob_' + pdb_name + '\n')
+        job_q_repair_script.write('#$ -V\n')
+        job_q_repair_script.write('#$ -cwd\n')
+        job_q_repair_script.write('source ~/.bash_profile\n')
+        job_q_repair_script.write(
             __execute_python_and_path_to_script_fwdslash__ + repair_python_script + self.__single_space__
             + __qsub_path__ + '\n')
-        g.close()
+        job_q_repair_script.close()
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
+
 
     def _run_agadir(self):
         pdb2fasta_python_script = 'pdb2fasta.py'
@@ -187,22 +191,13 @@ class OptProt:
 
     # # # # Called by perform_selected_computations() # # # #
 
-    def _wait_for_repair_to_complete(self):
-        check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
-        while 'RPjob_' in output_qstat:
-            print 'Waiting for PDBs to be repaired'
-            time.sleep(10)
-            check_qstat = subprocess.Popen(__qsub_path__ + 'qstat', stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
-
     def _compute_stretchplot(self, pdb):
         stretchplot_python_script = 'stretchplot.py'
         stretchplot_r_script = 'stretchplot.R'
         self._print_OptProt_calling_script(stretchplot_python_script)
         subprocess.call(
             __execute_python_and_path_to_script_fwdslash__ + stretchplot_python_script + self.__single_space__ +
-            __molecules_and_paths_to_r_foldx_agadir__, shell=True)
+            __proteinChains_and_paths_to_r_foldx_agadir__, shell=True)
         self._print_OptProt_calling_script(stretchplot_r_script)
         subprocess.call(
             __execute_r_and_path_to_script_fwdslash__ + stretchplot_r_script + self.__single_space__ + '--no-save',
@@ -237,11 +232,11 @@ class OptProt:
             if self.__command__ == 'Supercharge' or self.__command__ == 'DelPos' or self.__command__ == 'Indiv':
                 subprocess.call(
                     __execute_python_and_path_to_script_fwdslash__ + python_script +
-                    __molecules_and_paths_to_r_foldx_agadir_and_charge__, shell=True)
+                    __proteinChains_and_paths_to_r_foldx_agadir_and_charge__, shell=True)
             else:
                 subprocess.call(
                     __execute_python_and_path_to_script_fwdslash__ + python_script +
-                    __molecules_and_paths_to_r_foldx_agadir__, shell=True)
+                    __proteinChains_and_paths_to_r_foldx_agadir__, shell=True)
 
     def _convert_command_name_to_python_script_name(self, command):
         python_script_name = command
