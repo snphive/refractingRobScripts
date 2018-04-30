@@ -49,16 +49,18 @@ class OptProt:
         self.__command__ = ''
         self.__charge__ = ''
         self.__molecules__ = ''
+        self._print_absolute_path_to('R', __r_path__)
+        self._print_absolute_path_to('FoldX', __foldx_path__)
+        self._print_absolute_path_to('TANGO', __agadir_path__)
+        self._print_absolute_path_to('Qsub', __qsub_path__)
 
     # Extracts instructions from the option file.
-    # This includes which computations to run & which proteins to run them on in 3 parts:
+    # This includes which computations to run & which proteins to run them on in 2 parts:
     # 1. list of pdb names
     # 2. computation names ("command"), charge, protein chains ("molecules")
-    # 3. absolute paths to all required software and to the grid engine executables
     def parse_option_file(self, __option_file__):
         self.__parse_optionfile_for_pdblist(__option_file__)
         self.__parse_optionfile_for_computations_charge_mols(__option_file__)
-        self.__parse_optionfile_for_paths_to_r_foldx_agadir_qsub(__option_file__)
         global __molecules_and_paths_to_r_foldx_agadir__
         global __molecules_and_paths_to_r_foldx_agadir_and_charge__
         __molecules_and_paths_to_r_foldx_agadir__ = self.__single_space__ + self.__molecules__ + self.__single_space__ \
@@ -76,8 +78,7 @@ class OptProt:
             os.makedirs('Results')
         for pdb in self.__pdb_list__:
             pdb_name = pdb.split('.')[0]
-            self._build_results_directory_tree_for_each(pdb)
-            # current directory is the pdb subfolder of the Results folder
+            self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
             self._run_yasara_to_organise_pdb(pdb, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
@@ -85,9 +86,9 @@ class OptProt:
 
     def perform_selected_computations(self):
         self._wait_for_repair_to_complete()
-        for PDB in self.__pdb_list__:
-            self._build_results_directory_tree_for_each(PDB)
-            self._compute_stretchplot(PDB)
+        for pdb in self.__pdb_list__:
+            self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
+            self._compute_stretchplot(pdb)
             if not os.path.exists('Runs/' + self.__command__):
                 self._build_directory_tree_for_computations()
             self._compute_commands()
@@ -140,36 +141,6 @@ class OptProt:
                     self.__molecules__ = mol_string
         print 'Command to be executed:\t\t' + self.__command__
         print 'Molecules to be considered:\t' + self.__molecules__
-
-    # 3. Assigns to global variables the absolute paths to all required software and to the grid engine executables
-    # specified in the option file.
-    def __parse_optionfile_for_paths_to_r_foldx_agadir_qsub(self, __option_file__):
-        # global __r_path__
-        # global __foldx_path__
-        # global __agadir_path__
-        # global __qsub_path__
-        #
-        # with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml", 'r') as stream:
-        #     try:
-        #         paths_and_dictionaries = yaml.load(stream)
-        #     except yaml.YAMLError as exc:
-        #         print(exc)
-        #
-        # print(paths_and_dictionaries['ROOT']['R_Path'])
-        #
-        # for line in __option_file__:
-        #     if 'R_Path' in line:
-        #         __r_path__ = line.split(':')[-1].strip(';\n')
-        #     if 'FoldX_Path' in line:
-        #         __foldx_path__ = line.split(':')[-1].strip(';\n')
-        #     if 'Agadir_Path' in line:
-        #         __agadir_path__ = line.split(':')[-1].strip(';\n')
-        #     if 'Qsub_Path' in line:
-        #         __qsub_path__ = line.split(':')[-1].strip(';\n')
-        self._print_absolute_path_to('R', __r_path__)
-        self._print_absolute_path_to('FoldX', __foldx_path__)
-        self._print_absolute_path_to('TANGO', __agadir_path__)
-        self._print_absolute_path_to('Qsub', __qsub_path__)
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
@@ -288,6 +259,7 @@ class OptProt:
 
     # # # # # # # # # UTILITY METHODS # # # # # # # # #
 
+    # Note that this method also changes the current directory to the new Results/pdb directory
     def _build_results_directory_tree_for_each(self, pdb):
         pdb_name = pdb.split('.')[0]
         if not os.path.exists('Results/' + pdb_name):
