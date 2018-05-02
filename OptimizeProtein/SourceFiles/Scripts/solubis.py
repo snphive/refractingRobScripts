@@ -7,10 +7,7 @@ import GeneralUtilityMethods
 from OptimizeProtein import yasara
 import yaml
 
-Mols = sys.argv[1].split('_')
-# R_Path = sys.argv[2] # this is not used so why is it here?
-# FoldX_Path = sys.argv[3]
-# Agadir_Path = sys.argv[4] # this is not used so why is it here?
+protein_chains = sys.argv[1].split('_')
 
 yasara.info.mode = 'txt'
 
@@ -53,15 +50,14 @@ agadirs = []
 totals = []
 total_pdb = 0
 
-os.chdir('Runs/Solubis')
 os.chdir(results_pdb_Runs_Solubis_directory)
 
 indiv = open('individual_list.txt', 'w')
 index_program = 0
-for mol in Mols:
-    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_globaltotal.out', 'r').readlines()
+for protein_chain in protein_chains:
+    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + protein_chain + '/PSX_globaltotal.out', 'r').readlines()
     header_for_PSX_globaltotal_table = f[0].split()
-    old_fasta_lines = open(results_pdb_directory + '/Fasta/' + pdb_name + '_' + mol + '.fasta', 'r').readlines()
+    old_fasta_lines = open(results_pdb_directory + '/Fasta/' + pdb_name + '_' + protein_chain + '.fasta', 'r').readlines()
     old_fasta = []
     if len(old_fasta_lines) == 2:
         for a in old_fasta_lines[1]:
@@ -78,7 +74,7 @@ for mol in Mols:
     totals.append(total)
     total_pdb = total_pdb + float(total)
     # get stretches
-    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + mol + '/PSX_tangowindow.out', 'r').readlines()
+    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + protein_chain + '/PSX_tangowindow.out', 'r').readlines()
     stretches = []
     for line in f[1:]:
         new_stretches = []
@@ -96,7 +92,7 @@ for mol in Mols:
                 new_stretch[x] = gate
                 new_stretch = "".join(new_stretch)
                 new_fasta = old_fasta.replace(stretch, new_stretch)
-                mutation = aa + mol + index_mutation + gate
+                mutation = aa + protein_chain + index_mutation + gate
                 if not os.path.exists(mutation):
                     os.makedirs(mutation)
                 os.chdir(mutation)
@@ -112,26 +108,11 @@ for mol in Mols:
                     subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
                 else:
                     print 'Something is wrong'
-                f = open('runscript.txt', 'w')
-                f.write('<TITLE>FOLDX_runscript;\n')
-                f.write('<JOBSTART>#;\n')
-                f.write('<PDBS>RepairPDB_' + pdb_name + '.pdb;\n')
-                f.write('<BATCH>#;\n')
-                f.write('<COMMANDS>FOLDX_commandfile;\n')
-                f.write('<BuildModel>#,individual_list.txt;\n')
-                f.write('<END>#;\n')
-                f.write('<OPTIONS>FOLDX_optionfile;\n')
-                f.write('<Temperature>298;\n')
-                f.write('<IonStrength>0.05;\n')
-                f.write('<ph>7;\n')
-                f.write('<moveNeighbours>true;\n')
-                f.write('<VdWDesign>2;\n')
-                f.write('<numberOfRuns>3;\n')
-                f.write('<OutPDB>#;\n')
-                f.write('<END>#;\n')
-                f.write('<JOBEND>#;\n')
-                f.write('<ENDFILE>#;\n')
-                f.close()
+
+                repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
+                runscript_foldx_command = '<BuildModel>#,individual_list.txt'
+                GeneralUtilityMethods.GUM.build_runscript_for_pdbs(repaired_pdbs, runscript_foldx_command)
+
                 h = open('individual_list.txt', 'w')
                 h.write(mutation + ';\n')
                 h.close()
@@ -165,28 +146,11 @@ for path in dirs:
         mutation = path.split('/')[-1]
         subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
         subprocess.call('rm runscript.txt', shell=True)
-        f = open('runscript.txt', 'w')
-        f.write('<TITLE>FOLDX_runscript;\n')
-        f.write('<JOBSTART>#;\n')
-        f.write(
-            '<PDBS>' + pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + '_1_0.pdb,WT_'
-            + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,;\n')
-        f.write('<BATCH>#;\n')
-        f.write('<COMMANDS>FOLDX_commandfile;\n')
-        f.write('<AnalyseComplex>#;\n')
-        f.write('<END>#;\n')
-        f.write('<OPTIONS>FOLDX_optionfile;\n')
-        f.write('<Temperature>298;\n')
-        f.write('<IonStrength>0.05;\n')
-        f.write('<ph>7;\n')
-        f.write('<moveNeighbours>true;\n')
-        f.write('<VdWDesign>2;\n')
-        f.write('<numberOfRuns>3;\n')
-        f.write('<OutPDB>#;\n')
-        f.write('<END>#;\n')
-        f.write('<JOBEND>#;\n')
-        f.write('<ENDFILE>#;\n')
-        f.close()
+
+        pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
+        runscript_foldx_command = '<AnalyseComplex>#'
+        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(pdbs_to_analyse, runscript_foldx_command)
+
         pdb = pdb_name + '_1_0.pdb'
         print os.getcwd()
         f = open(pdb).readlines()
@@ -324,3 +288,4 @@ for path in dirs:
         sumstring = mut + '\t' + mol + '\t' + ddG + '\t' + str(dTango) + '\t' + str(ComplexSum) + '\t' + Complex + '\n'
         g.write(sumstring)
 g.close()
+
