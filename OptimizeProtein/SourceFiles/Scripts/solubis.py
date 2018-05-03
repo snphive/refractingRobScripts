@@ -87,28 +87,27 @@ for protein_chain in protein_chains:
         index_stretch = old_fasta.find(stretch)
         for x, aa in enumerate(stretch):
             index_mutation = str(index_stretch + x + 1)
-            for gate in gatekeepers:
+            for gatekeeper in gatekeepers:
                 new_stretch = list(stretch)
-                new_stretch[x] = gate
+                new_stretch[x] = gatekeeper
                 new_stretch = "".join(new_stretch)
                 new_fasta = old_fasta.replace(stretch, new_stretch)
-                mutation = aa + protein_chain + index_mutation + gate
+                mutation = aa + protein_chain + index_mutation + gatekeeper
                 if not os.path.exists(mutation):
                     os.makedirs(mutation)
                 os.chdir(mutation)
                 if not os.path.exists('Fasta'):
-                    os.makedirs('Fasta')
+                   os.makedirs('Fasta')
                 if not os.path.exists('Agadir'):
                     os.makedirs('Agadir')
                 if not os.path.exists('Agadir/Options.txt'):
                     subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
-                                    shell=True)
+                                shell=True)
                 if os.path.exists(results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
                     subprocess.call('cp ' + results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
                     subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
                 else:
                     print 'Something is wrong'
-
                 repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
                 runscript_foldx_command = '<BuildModel>#,individual_list.txt'
                 GeneralUtilityMethods.GUM.build_runscript_for_pdbs(repaired_pdbs, runscript_foldx_command)
@@ -116,21 +115,16 @@ for protein_chain in protein_chains:
                 h = open('individual_list.txt', 'w')
                 h.write(mutation + ';\n')
                 h.close()
-                g = open('./job.q', 'w')
-                g.write('#!/bin/bash\n')
-                g.write('#$ -N SB_' + mutation + '\n')
-                g.write('#$ -V\n')
-                g.write('#$ -cwd\n')
-                g.write('source ~/.bash_profile\n')
-                g.write(foldx_path + ' -runfile runscript.txt\n')
-                g.close()
+
+                grid_engine_job_name = 'SB_' + mutation
+                optional_execute_python_script = ''
+                GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, foldx_path, optional_execute_python_script)
+
                 indiv.write(mutation + ';\n')
                 subprocess.call('qsub job.q', shell=True)
                 os.chdir('./..')
 
 indiv.close()
-
-
 GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('SB_', 'all Solubis jobs to finish')
 
 # ListOfSolubisMutationResultsFolders
@@ -147,7 +141,8 @@ for path in dirs:
         subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
         subprocess.call('rm runscript.txt', shell=True)
 
-        pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
+        pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + \
+                          '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
         runscript_foldx_command = '<AnalyseComplex>#'
         GeneralUtilityMethods.GUM.build_runscript_for_pdbs(pdbs_to_analyse, runscript_foldx_command)
 
@@ -177,15 +172,11 @@ for path in dirs:
             f.write('>' + pdb_name + '_' + mol + '\n')
             f.write(fasta)
             f.close()
-        g = open('./job.q', 'w')
-        g.write('#!/bin/bash\n')
-        g.write('#$ -N AC_' + mutation + '\n')
-        g.write('#$ -V\n')
-        g.write('#$ -cwd\n')
-        g.write('source ~/.bash_profile\n')
-        g.write(foldx_path + ' -runfile runscript.txt\n')
-        g.write('python ' + results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py\n')
-        g.close()
+
+        grid_engine_job_name = 'AC_' + mutation
+        optional_execute_python_script = 'python ' + results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py\n'
+        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, foldx_path, optional_execute_python_script)
+
         subprocess.call('qsub job.q', shell=True)
         os.chdir('./..')
     else:
