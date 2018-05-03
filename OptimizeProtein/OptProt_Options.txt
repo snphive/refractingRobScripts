@@ -22,7 +22,7 @@ Command:Solubis;
 Charge:
 
 ####Molecule in the structure you want to analyse. Single letter of Molecule (eg:A), multiple molecules separated by comma's (eg:A,B) or all molecules(All)
-Mols:L,H;
+ProteinChains:L,H;
 
 ####Path to necessary tools. Don't change on the cluster.
 R_Path:/software/shared/apps/general/R/3.1.2/bin/Rscript;
