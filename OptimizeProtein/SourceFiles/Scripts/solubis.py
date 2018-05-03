@@ -40,8 +40,7 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
 
 # starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-# gatekeepers = ['R', 'P', 'K', 'E', 'D']
-gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
+gatekeepers = ['R']  # just for testing purposes
 pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
 results_pdb_directory = results_directory + '/' + pdb_name
 results_pdb_Runs_Solubis_directory = results_pdb_directory + '/Runs/Solubis'
@@ -116,9 +115,9 @@ for protein_chain in protein_chains:
                 h.write(mutation + ';\n')
                 h.close()
 
-                grid_engine_job_name = 'SB_' + mutation
+                prefix_mutant_name = 'SB_' + mutation
                 optional_execute_python_script = ''
-                GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, foldx_path, optional_execute_python_script)
+                GeneralUtilityMethods.GUM.build_job_q_bash(prefix_mutant_name, foldx_path, optional_execute_python_script)
 
                 indiv.write(mutation + ';\n')
                 subprocess.call('qsub job.q', shell=True)
@@ -173,9 +172,9 @@ for path in dirs:
             f.write(fasta)
             f.close()
 
-        grid_engine_job_name = 'AC_' + mutation
+        prefix_mutant_name = 'AC_' + mutation
         optional_execute_python_script = 'python ' + results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py\n'
-        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, foldx_path, optional_execute_python_script)
+        GeneralUtilityMethods.GUM.build_job_q_bash(prefix_mutant_name, foldx_path, optional_execute_python_script)
 
         subprocess.call('qsub job.q', shell=True)
         os.chdir('./..')
