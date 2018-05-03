@@ -26,6 +26,7 @@ class OptProt(object):
     __execute_r_and_path_to_script_fwdslash__ = ''
     __proteinChains_and_paths_to_r_foldx_agadir__ = ''
     __proteinChains_and_paths_to_r_foldx_agadir_and_charge__ = ''
+    __repair_job_prefix__ = ''
 
     def __init__(self, start_path, scripts_path, r_path, foldx_path, agadir_path, qsub_path):
         global __start_path__
@@ -36,12 +37,14 @@ class OptProt(object):
         global __qsub_path__
         global __execute_python_and_path_to_script_fwdslash__
         global __execute_r_and_path_to_script_fwdslash__
+        global __repair_job_prefix__
         __start_path__ = start_path
         __scripts_path__ = scripts_path
         __r_path__ = r_path
         __foldx_path__ = foldx_path
         __agadir_path__ = agadir_path
         __qsub_path__ = qsub_path
+        __repair_job_prefix__ = 'RPjob_'
         self.__single_space__ = ' '
         __execute_python_and_path_to_script_fwdslash__ = 'python' + self.__single_space__ + __scripts_path__ + '/'
         __execute_r_and_path_to_script_fwdslash__ = 'R <' + self.__single_space__ + __scripts_path__ + '/'
@@ -74,6 +77,7 @@ class OptProt(object):
     # Runs Agadirwrapper on each fasta protein sequence via agadir.py.
     # Runs FoldX repair on each pdb via repair.py.
     def run_yasara_agadir_repair(self):
+        global __repair_job_prefix__
         if not os.path.exists('Results'):
             os.makedirs('Results')
         for pdb in self.__pdb_list__:
@@ -83,7 +87,7 @@ class OptProt(object):
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
-        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('RPJob_', 'PDBs to be repaired')
+        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, 'PDBs to be repaired')
 
     def perform_selected_computations(self):
         for pdb in self.__pdb_list__:
@@ -129,7 +133,7 @@ class OptProt(object):
                 self.__command__ = line.split(':')[-1].strip(';\n')
             if 'Charge:' in line:
                 self.__charge__ = line.split(':')[-1].strip(';\n')
-            if 'Protein Chains:' in line:
+            if 'ProteinChains:' in line:
                 self.__proteinChains__ = []
                 protein_chains_string = line.split(':')[-1].strip(';\n')
                 if ',' in protein_chains_string:
@@ -144,8 +148,8 @@ class OptProt(object):
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
-    # Yasara uses the term molecule to describe protein chain, so the variable names in this method are mol instead of
-    # protein_chain
+    # Yasara uses the term "molecules" to describe protein chains,
+    # so the variable names in this method are mol instead of protein_chain.
     def _run_yasara_to_organise_pdb(self, pdb, pdb_name):
         yasara.run('DelObj all')
         yasara.run('LoadPDB' + self.__single_space__ + __start_path__ + '/PDBs/' + pdb)
@@ -156,7 +160,6 @@ class OptProt(object):
         yasara.run(
             'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + pdb + ',Format=PDB,Transform=Yes')
 
-
     def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, pdb):
         cp_start_path = 'cp' + self.__single_space__ + __start_path__
         subprocess.call(cp_start_path + '/PDBs/' + pdb + ' ./PDBs/.', shell=True)
@@ -165,21 +168,16 @@ class OptProt(object):
         subprocess.call(cp_start_path + '/SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
 
     def _run_repair_on_grid_engine(self, pdb_name):
+        global __repair_job_prefix__
+        global __foldx_path__
         repair_python_script = 'repair.py'
         self._print_OptProt_calling_script(repair_python_script)
-        job_q_repair_script = open('./job.q', 'w')
-        job_q_repair_script.write('#!/bin/bash\n')
-        job_q_repair_script.write('#$ -N RPjob_' + pdb_name + '\n')
-        job_q_repair_script.write('#$ -V\n')
-        job_q_repair_script.write('#$ -cwd\n')
-        job_q_repair_script.write('source ~/.bash_profile\n')
-        job_q_repair_script.write(
-            __execute_python_and_path_to_script_fwdslash__ + repair_python_script + self.__single_space__
-            + __qsub_path__ + '\n')
-        job_q_repair_script.close()
+        execute_python_script = __execute_python_and_path_to_script_fwdslash__ + repair_python_script + \
+                                self.__single_space__ + __qsub_path__ + '\n'
+        grid_engine_job_name = __repair_job_prefix__ + pdb_name
+        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, __foldx_path__, execute_python_script)
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
-
 
     def _run_agadir(self):
         pdb2fasta_python_script = 'pdb2fasta.py'
