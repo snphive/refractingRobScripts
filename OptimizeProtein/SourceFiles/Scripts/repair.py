@@ -7,6 +7,7 @@ import GeneralUtilityMethods
 import yaml
 
 startingDir = os.getcwd()
+path_to_runscript = startingDir + '/Repair/'
 targets = sorted(glob.glob('./PDBs/*.pdb'))
 foldx = 'FoldX'
 results = 'Results'
@@ -30,11 +31,14 @@ for pdb in targets:
     rawpdb = pdb.split('/')[-1]
     os.chdir('Repair')
     if not os.path.exists('RepairPDB_'+rawpdb):
-        path_to_runscript = startingDir + '/Repair/'
+        # path_to_runscript = startingDir + '/Repair/'
         pdbs = rawpdb
+        show_sequence_detail = False
         action = '<RepairPDB>#'
-        should_print_networks = True
-        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs, action, should_print_networks)
+        print_networks = True
+        calculate_stability = False
+        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs, show_sequence_detail, action,
+                                                           print_networks, calculate_stability)
         grid_engine_job_name = __repair_job_prefix__ + name
         queue = 'all.q'
         max_memory = 'h_vmem=3G'
@@ -48,29 +52,15 @@ for pdb in targets:
         GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, message_to_print)
 
         subprocess.call('cp '+startingDir+'/Repair/runscript.txt runscript_repair.txt',shell=True)
-        f = open(startingDir+'/Repair/runscript.txt','w')
-        f.write('<TITLE>FOLDX_runscript;\n')
-        f.write('<JOBSTART>#;\n')
-        f.write('<PDBS>RepairPDB_'+rawpdb+';\n')
-        f.write('<BATCH>#;\n')
-        f.write('<COMMANDS>FOLDX_commandfile;\n')
-        f.write('<SequenceDetail>#;\n')
-        f.write('<AnalyseComplex>#;\n')
-        f.write('<PrintNetworks>#;\n')
-        f.write('<Stability>#;\n')
-        f.write('<END>#;\n')
-        f.write('<OPTIONS>FOLDX_optionfile;\n')
-        f.write('<Temperature>298;\n')
-        f.write('<IonStrength>0.05;\n')
-        f.write('<ph>7;\n')
-        f.write('<moveNeighbours>true;\n')
-        f.write('<VdWDesign>2;\n')
-        f.write('<numberOfRuns>3;\n')
-        f.write('<OutPDB>#;\n')
-        f.write('<END>#;\n')
-        f.write('<JOBEND>#;\n')
-        f.write('<ENDFILE>#;\n')
-        f.close()
+
+        pdbs = 'RepairPDB_' + rawpdb
+        show_sequence_detail = True
+        action = '<AnalyseComplex>#'
+        print_networks = True
+        calculate_stability = True
+        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs, show_sequence_detail, action,
+                                                           print_networks, calculate_stability)
+
         subprocess.call(Qsub_Path+'qsub job.q',shell=True)
         check_qstat = subprocess.Popen(Qsub_Path+'qstat',stdout=subprocess.PIPE)
         output_qstat = check_qstat.stdout.read()

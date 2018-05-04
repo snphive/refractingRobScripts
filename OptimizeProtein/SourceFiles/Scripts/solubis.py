@@ -110,12 +110,16 @@ for protein_chain in protein_chains:
                     subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
                 else:
                     print 'Something is wrong'
-                repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
-                runscript_foldx_command = '<BuildModel>#,individual_list.txt'
+
                 path_to_runscript = './'
-                should_print_networks = False
+                repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
+                show_sequence_detail = False
+                action = '<BuildModel>#,individual_list.txt'
+                print_networks = False
+                calculate_stability = False
                 GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, repaired_pdbs,
-                                                                   runscript_foldx_command, should_print_networks)
+                                                                   show_sequence_detail, action, print_networks,
+                                                                   calculate_stability)
 
                 h = open('individual_list.txt', 'w')
                 h.write(mutation + ';\n')
@@ -150,13 +154,16 @@ for path in dirs:
         subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
         subprocess.call('rm runscript.txt', shell=True)
 
+        path_to_runscript = './'
         pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + \
                           '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
-        runscript_foldx_command = '<AnalyseComplex>#'
-        path_to_runscript = './'
-        should_print_networks = False
+        show_sequence_detail = False
+        action = '<AnalyseComplex>#'
+        print_networks = False
+        calculate_stability = False
         GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs_to_analyse,
-                                                           runscript_foldx_command, should_print_networks)
+                                                           show_sequence_detail, action, print_networks,
+                                                           calculate_stability)
 
         pdb = pdb_name + '_1_0.pdb'
         print os.getcwd()
