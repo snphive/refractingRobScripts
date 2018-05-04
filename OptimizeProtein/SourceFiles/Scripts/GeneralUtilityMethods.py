@@ -15,14 +15,16 @@ class GUM(object):
             output_qstat = check_qstat.stdout.read()
 
     @staticmethod
-    def build_runscript_for_pdbs(pdbs, action):
-        runscript_file = open('runscript.txt', 'w')
+    def build_runscript_for_pdbs(path_to_runscript, pdbs, action, should_print_networks):
+        runscript_file = open(path_to_runscript + 'runscript.txt', 'w')
         runscript_file.write('<TITLE>FOLDX_runscript;\n')
         runscript_file.write('<JOBSTART>#;\n')
         runscript_file.write('<PDBS>' + pdbs + ';\n')
         runscript_file.write('<BATCH>#;\n')
         runscript_file.write('<COMMANDS>FOLDX_commandfile;\n')
         runscript_file.write(action + ';\n')
+        if should_print_networks:
+            runscript_file.write('<PrintNetworks>#;\n')
         runscript_file.write('<END>#;\n')
         runscript_file.write('<OPTIONS>FOLDX_optionfile;\n')
         runscript_file.write('<Temperature>298;\n')
@@ -49,4 +51,3 @@ class GUM(object):
         if execute_python_script != '':
             g.write(execute_python_script)
         g.close()
-

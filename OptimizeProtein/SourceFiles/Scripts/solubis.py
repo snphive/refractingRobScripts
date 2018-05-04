@@ -40,7 +40,8 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
 
 # starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-gatekeepers = ['R']  # just for testing purposes
+# gatekeepers = ['R', 'P', 'K', 'E', 'D']
+gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
 pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
 results_pdb_directory = results_directory + '/' + pdb_name
 results_pdb_Runs_Solubis_directory = results_pdb_directory + '/Runs/Solubis'
@@ -109,7 +110,10 @@ for protein_chain in protein_chains:
                     print 'Something is wrong'
                 repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
                 runscript_foldx_command = '<BuildModel>#,individual_list.txt'
-                GeneralUtilityMethods.GUM.build_runscript_for_pdbs(repaired_pdbs, runscript_foldx_command)
+                path_to_runscript = './'
+                should_print_networks = False
+                GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, repaired_pdbs,
+                                                                   runscript_foldx_command, should_print_networks)
 
                 h = open('individual_list.txt', 'w')
                 h.write(mutation + ';\n')
@@ -143,7 +147,10 @@ for path in dirs:
         pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + \
                           '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
         runscript_foldx_command = '<AnalyseComplex>#'
-        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(pdbs_to_analyse, runscript_foldx_command)
+        path_to_runscript = './'
+        should_print_networks = False
+        GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs_to_analyse,
+                                                           runscript_foldx_command, should_print_networks)
 
         pdb = pdb_name + '_1_0.pdb'
         print os.getcwd()
@@ -278,4 +285,3 @@ for path in dirs:
         sumstring = mut + '\t' + mol + '\t' + ddG + '\t' + str(dTango) + '\t' + str(ComplexSum) + '\t' + Complex + '\n'
         g.write(sumstring)
 g.close()
-

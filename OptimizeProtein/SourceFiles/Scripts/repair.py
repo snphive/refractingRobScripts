@@ -1,37 +1,22 @@
 import os,sys,glob,subprocess,time
+import GeneralUtilityMethods
 startingDir = os.getcwd()
+print 'startDir in Repair.py' + startingDir
 targets = sorted(glob.glob('./PDBs/*.pdb'))
 foldx = 'FoldX'
 results = 'Results'
 
 Qsub_Path = sys.argv[1]
-
 for pdb in targets:
 	name = pdb.split('/')[-1].split('.')[0]
 	rawpdb = pdb.split('/')[-1]
 	os.chdir('Repair')
 	if not os.path.exists('RepairPDB_'+rawpdb):
-		f = open(startingDir+'/Repair/runscript.txt','w')
-		f.write('<TITLE>FOLDX_runscript;\n')
-		f.write('<JOBSTART>#;\n')
-		f.write('<PDBS>'+rawpdb+';\n')
-		f.write('<BATCH>#;\n')
-		f.write('<COMMANDS>FOLDX_commandfile;\n')
-		f.write('<RepairPDB>#;\n')
-		f.write('<PrintNetworks>#;\n')
-		f.write('<END>#;\n')
-		f.write('<OPTIONS>FOLDX_optionfile;\n')
-		f.write('<Temperature>298;\n')
-		f.write('<IonStrength>0.05;\n')
-		f.write('<ph>7;\n')
-		f.write('<moveNeighbours>true;\n')
-		f.write('<VdWDesign>2;\n')
-		f.write('<numberOfRuns>3;\n')
-		f.write('<OutPDB>#;\n')
-		f.write('<END>#;\n')
-		f.write('<JOBEND>#;\n')
-		f.write('<ENDFILE>#;\n')
-		f.close()
+		path_to_runscript = startingDir + '/Repair/'
+		pdbs = rawpdb
+		action = '<RepairPDB>#'
+		should_print_networks = True
+		GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs, action, should_print_networks)
 		g = open('./job.q','w')
 		g.write('#!/bin/bash\n')
 		g.write('#$ -N RP_'+name+'\n')
