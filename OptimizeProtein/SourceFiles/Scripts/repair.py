@@ -2,7 +2,6 @@ import os
 import sys
 import glob
 import subprocess
-import time
 import GeneralUtilityMethods
 import yaml
 
@@ -62,14 +61,9 @@ for pdb in targets:
                                                            print_networks, calculate_stability)
 
         subprocess.call(Qsub_Path+'qsub job.q',shell=True)
-        check_qstat = subprocess.Popen(Qsub_Path+'qstat',stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
 
-        while 'RP_' in output_qstat:
-            print 'Waiting for AnalyseComplex to finish'
-            time.sleep(5)
-            check_qstat = subprocess.Popen('qstat',stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
+        message_to_print = 'AnalyseComplex to finish'
+        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, message_to_print)
 
         subprocess.call('cp '+startingDir+'/Repair/runscript.txt runscript_SequenceDetail.txt',shell=True)
     os.chdir(startingDir)
