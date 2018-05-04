@@ -14,6 +14,7 @@ yasara.info.mode = 'txt'
 # calculations will be made on which pdbs, based on reading in and parsing the options file.
 # It includes preparatory steps for calculating protein structural and aggregation propensity properties,
 # using Yasara functions. It also includes calls to FoldX to perform repair of the structure data.
+# This version of OptProt does exactly the same things as the original. It is simply refactored to be object-oriented.
 class OptProt(object):
     # declare all global variables
     __r_path__ = ''
@@ -170,12 +171,17 @@ class OptProt(object):
     def _run_repair_on_grid_engine(self, pdb_name):
         global __repair_job_prefix__
         global __foldx_path__
+        global __scripts_path__
         repair_python_script = 'repair.py'
         self._print_OptProt_calling_script(repair_python_script)
-        execute_python_script = __execute_python_and_path_to_script_fwdslash__ + repair_python_script + \
-                                self.__single_space__ + __qsub_path__ + '\n'
         grid_engine_job_name = __repair_job_prefix__ + pdb_name
-        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, __foldx_path__, execute_python_script)
+        no_queue = ''
+        no_max_memory = ''
+        no_cluster = ''
+        python_script_with_path_and_qsub = __scripts_path__ + '/' + repair_python_script + \
+                                self.__single_space__ + __qsub_path__
+        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
+                                                   __foldx_path__, python_script_with_path_and_qsub)
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
 

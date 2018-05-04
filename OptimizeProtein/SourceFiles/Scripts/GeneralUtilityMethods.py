@@ -40,14 +40,20 @@ class GUM(object):
         runscript_file.close()
 
     @staticmethod
-    def build_job_q_bash(grid_engine_job_name, foldx_path, execute_python_script):
+    def build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, foldx_path, python_script_with_path):
         g = open('./job.q', 'w')
         g.write('#!/bin/bash\n')
         g.write('#$ -N ' + grid_engine_job_name + '\n')
         g.write('#$ -V\n')
+        if queue != '':
+            g.write('#$ -q ' + queue + '\n')
+        if max_memory != '':
+            g.write('#$ -l ' + max_memory + '\n')
+        if cluster != '':
+            g.write('#$ -l ' + cluster + '\n')
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
         g.write(foldx_path + ' -runfile runscript.txt\n')
-        if execute_python_script != '':
-            g.write(execute_python_script)
+        if python_script_with_path != '':
+            g.write('python ' + python_script_with_path + '\n')
         g.close()
