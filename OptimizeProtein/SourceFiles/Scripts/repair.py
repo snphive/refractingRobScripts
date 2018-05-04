@@ -10,7 +10,7 @@ startingDir = os.getcwd()
 targets = sorted(glob.glob('./PDBs/*.pdb'))
 foldx = 'FoldX'
 results = 'Results'
-
+__repair_job_prefix__ = 'RP_'
 foldx_path = ''
 
 with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
@@ -35,7 +35,7 @@ for pdb in targets:
         action = '<RepairPDB>#'
         should_print_networks = True
         GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs, action, should_print_networks)
-        grid_engine_job_name = 'RP_'+ name
+        grid_engine_job_name = __repair_job_prefix__ + name
         queue = 'all.q'
         max_memory = 'h_vmem=3G'
         cluster = 'hostname=hodor1.vib'
@@ -43,13 +43,9 @@ for pdb in targets:
         GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, foldx_path,
                                                    no_python_script)
         subprocess.call(Qsub_Path+'qsub job.q',shell=True)
-        check_qstat = subprocess.Popen(Qsub_Path+'qstat',stdout=subprocess.PIPE)
-        output_qstat = check_qstat.stdout.read()
-        while 'RP_' in output_qstat:
-            print 'Waiting for RepairPDB to finish'
-            time.sleep(10)
-            check_qstat = subprocess.Popen(Qsub_Path+'qstat',stdout=subprocess.PIPE)
-            output_qstat = check_qstat.stdout.read()
+
+        message_to_print = 'RepairPDB to finish'
+        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, message_to_print)
 
         subprocess.call('cp '+startingDir+'/Repair/runscript.txt runscript_repair.txt',shell=True)
         f = open(startingDir+'/Repair/runscript.txt','w')

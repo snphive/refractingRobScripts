@@ -20,6 +20,9 @@ results_pdb_directory = ''
 aa_dict_1to3 = {}
 aa_dict_3to1 = {}
 gatekeepers = []
+__solubis_job_prefix__ = 'SB_'
+__analyze_complex_job_prefix__ = 'AC_'
+
 
 with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
           'r') as stream:
@@ -40,8 +43,7 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
 
 # starting_directory = os.getcwd()
 pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-# gatekeepers = ['R', 'P', 'K', 'E', 'D']
-gatekeepers = ['R']  # commented out full list of gatekeepers and using just 1 residue to speed up my test runs
+gatekeepers = ['R']  # for testing purposes only (to speed up solubis)
 pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
 results_pdb_directory = results_directory + '/' + pdb_name
 results_pdb_Runs_Solubis_directory = results_pdb_directory + '/Runs/Solubis'
@@ -119,7 +121,7 @@ for protein_chain in protein_chains:
                 h.write(mutation + ';\n')
                 h.close()
 
-                grid_engine_job_name = 'SB_' + mutation
+                grid_engine_job_name = __solubis_job_prefix__ + mutation
                 no_queue = ''
                 no_max_memory = ''
                 no_cluster = ''
@@ -132,7 +134,7 @@ for protein_chain in protein_chains:
                 os.chdir('./..')
 
 indiv.close()
-GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('SB_', 'all Solubis jobs to finish')
+GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__solubis_job_prefix__, 'all Solubis jobs to finish')
 
 # ListOfSolubisMutationResultsFolders
 dirs = sorted(glob.glob('./*'))
@@ -183,8 +185,7 @@ for path in dirs:
             f.write(fasta)
             f.close()
 
-
-        grid_engine_job_name = 'AC_' + mutation
+        grid_engine_job_name = __analyze_complex_job_prefix__ + mutation
         no_queue = ''
         no_max_memory = ''
         no_cluster = ''
@@ -197,7 +198,8 @@ for path in dirs:
     else:
         print path
 
-GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete('AC_', 'all AnalyseComplex jobs to finish')
+message_to_print = 'all AnalyseComplex jobs to finish'
+GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__analyze_complex_job_prefix__, message_to_print)
 
 os.chdir(results_pdb_directory)
 g = open('SummarySolubis.txt', 'w')

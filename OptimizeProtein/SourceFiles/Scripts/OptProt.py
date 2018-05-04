@@ -88,7 +88,8 @@ class OptProt(object):
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
-        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, 'PDBs to be repaired')
+            message_to_print = 'PDBs to be repaired'
+        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__repair_job_prefix__, message_to_print)
 
     def perform_selected_computations(self):
         for pdb in self.__pdb_list__:
