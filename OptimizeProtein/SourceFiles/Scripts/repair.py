@@ -42,9 +42,10 @@ for pdb in targets:
         queue = 'all.q'
         max_memory = 'h_vmem=3G'
         cluster = 'hostname=hodor1.vib'
+        using_runscript = True
         no_python_script = ''
-        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, foldx_path,
-                                                   no_python_script)
+        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, using_runscript,
+                                                   foldx_path, no_python_script)
         subprocess.call(Qsub_Path+'qsub job.q',shell=True)
 
         message_to_print = 'RepairPDB to finish'

@@ -67,9 +67,9 @@ class OptProt(object):
         self.__parse_optionfile_for_computations_charge_proteinChains(__option_file__)
         global __proteinChains_and_paths_to_r_foldx_agadir__
         global __proteinChains_and_paths_to_r_foldx_agadir_and_charge__
-        __proteinChains_and_paths_to_r_foldx_agadir__ = self.__single_space__ + self.__proteinChains__ + \
-            self.__single_space__ + __r_path__ + self.__single_space__ + __foldx_path__ + self.__single_space__ + \
-            __agadir_path__
+        __proteinChains_and_paths_to_r_foldx_agadir__ = self.__proteinChains__ + self.__single_space__ + __r_path__ \
+                                                        + self.__single_space__ + __foldx_path__ + \
+                                                        self.__single_space__ + __agadir_path__
         __proteinChains_and_paths_to_r_foldx_agadir_and_charge__ = __proteinChains_and_paths_to_r_foldx_agadir__ + \
             self.__single_space__ + self.__charge__
 
@@ -83,8 +83,9 @@ class OptProt(object):
             os.makedirs('Results')
         for pdb in self.__pdb_list__:
             pdb_name = pdb.split('.')[0]
-            self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
-            self._run_yasara_to_organise_pdb(pdb, pdb_name)
+            self._build_results_directory_tree_for_each(pdb)
+            # current directory Results/pdb
+            # self._run_yasara_to_organise_pdb(pdb, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
@@ -93,6 +94,7 @@ class OptProt(object):
 
     def perform_selected_computations(self):
         for pdb in self.__pdb_list__:
+
             self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
             self._compute_stretchplot(pdb)
             if not os.path.exists('Runs/' + self.__command__):
@@ -162,6 +164,7 @@ class OptProt(object):
         yasara.run(
             'SavePDB 1,' + __start_path__ + '/Results/' + pdb_name + '/PDBs/' + pdb + ',Format=PDB,Transform=Yes')
 
+    # The current working directory is Results/<pdb_name>0
     def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, pdb):
         cp_start_path = 'cp' + self.__single_space__ + __start_path__
         subprocess.call(cp_start_path + '/PDBs/' + pdb + ' ./PDBs/.', shell=True)
@@ -185,6 +188,8 @@ class OptProt(object):
                                                    __foldx_path__, python_script_with_path_and_qsub)
         subprocess.call(__qsub_path__ + 'qsub job.q', shell=True)
         os.chdir(__start_path__)
+
+    # def _run_repair_on_local_machine(self, pdb_name):
 
     def _run_agadir(self):
         pdb2fasta_python_script = 'pdb2fasta.py'
@@ -240,7 +245,7 @@ class OptProt(object):
                     __proteinChains_and_paths_to_r_foldx_agadir_and_charge__, shell=True)
             else:
                 subprocess.call(
-                    __execute_python_and_path_to_script_fwdslash__ + python_script +
+                    __execute_python_and_path_to_script_fwdslash__ + python_script + self.__single_space__ +
                     __proteinChains_and_paths_to_r_foldx_agadir__, shell=True)
 
     def _convert_command_name_to_python_script_name(self, command):

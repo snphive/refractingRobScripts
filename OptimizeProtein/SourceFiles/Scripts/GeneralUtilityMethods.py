@@ -14,6 +14,7 @@ class GUM(object):
             check_qstat = subprocess.Popen('qstat', stdout=subprocess.PIPE)
             output_qstat = check_qstat.stdout.read()
 
+    # The runscript.txt is an input file for FoldX that informs the which pdbs to analyse and which programs to run
     @staticmethod
     def build_runscript_for_pdbs(path_to_runscript, pdbs, show_sequence_detail, action, print_networks,
                                  calculate_stability):
@@ -44,8 +45,11 @@ class GUM(object):
         runscript_file.write('<ENDFILE>#;\n')
         runscript_file.close()
 
+    # The job.q is a script that includes all necessary information for the grid engine, in terms of which computations
+    # to perform as well as how to run these computations
     @staticmethod
-    def build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, foldx_path, python_script_with_path):
+    def build_job_q_bash(grid_engine_job_name, queue, max_memory, cluster, using_runscript, foldx_path,
+                         python_script_with_path):
         g = open('./job.q', 'w')
         g.write('#!/bin/bash\n')
         g.write('#$ -N ' + grid_engine_job_name + '\n')
@@ -58,7 +62,8 @@ class GUM(object):
             g.write('#$ -l ' + cluster + '\n')
         g.write('#$ -cwd\n')
         g.write('source ~/.bash_profile\n')
-        g.write(foldx_path + ' -runfile runscript.txt\n')
+        if using_runscript:
+            g.write(foldx_path + ' -runfile runscript.txt\n')
         if python_script_with_path != '':
             g.write('python ' + python_script_with_path + '\n')
         g.close()

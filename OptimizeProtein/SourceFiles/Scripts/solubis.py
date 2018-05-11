@@ -129,9 +129,10 @@ for protein_chain in protein_chains:
                 no_queue = ''
                 no_max_memory = ''
                 no_cluster = ''
+                using_runscript = True
                 no_python_script = ''
                 GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
-                                                           foldx_path, no_python_script)
+                                                           using_runscript, foldx_path, no_python_script)
 
                 indiv.write(mutation + ';\n')
                 subprocess.call('qsub job.q', shell=True)
@@ -196,9 +197,10 @@ for path in dirs:
         no_queue = ''
         no_max_memory = ''
         no_cluster = ''
+        using_runscript = True
         python_script_with_path = results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py'
         GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
-                                                   foldx_path, python_script_with_path)
+                                                   using_runscript, foldx_path, python_script_with_path)
 
         subprocess.call('qsub job.q', shell=True)
         os.chdir('./..')
