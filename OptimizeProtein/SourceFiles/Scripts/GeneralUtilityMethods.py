@@ -1,6 +1,17 @@
 import subprocess
 import time
+import yaml
 
+
+with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
+          'r') as stream:
+    try:
+
+        paths_and_dictionaries = yaml.load(stream)
+        aa_dict_3to1 = paths_and_dictionaries['ROOT']['aa_dict_3to1']
+
+    except yaml.YAMLError as exc:
+        print(exc)
 
 class GUM(object):
 
@@ -67,3 +78,42 @@ class GUM(object):
         if python_script_with_path != '':
             g.write('python ' + python_script_with_path + '\n')
         g.close()
+
+    # Originally used in solubis.py but removed as it was not necessary.
+    # Keeping this code for now should it be needed in near future
+    @staticmethod
+    def get_fasta_sequence(path_to_fasta):
+        fasta_lines = open(path_to_fasta, 'r').readlines()
+        fasta_list = []
+        if len(fasta_lines) == 2:
+            for amino_acid in fasta_lines[1]:
+                fasta_list.append(amino_acid)
+        else:
+            for fasta_line in fasta_lines[1:]:
+                for amino_acid in fasta_line:
+                    fasta_list.append(amino_acid)
+        fasta = "".join(fasta_list)
+        return fasta
+
+    @staticmethod
+    def convert_pdb_to_fasta(pdb):
+        pdb_file = open(pdb).readlines()
+        atom_lines = []
+        protein_chains = []
+        for line in pdb_file:
+            if 'ATOM' == line[0:4]:
+                protein_chain = line[21]
+                atom_lines.append(line)
+            if protein_chain not in protein_chains:
+                protein_chains.append(protein_chain)
+        for protein_chain in protein_chains:
+            fasta_list = []
+            resnum = '0'
+            for line in atom_lines:
+                if line[21] == protein_chain and resnum != line[22:26].strip(' '):
+                    resnum = line[22:26].strip(' ')
+                    amino_acid = line[17:20]
+                    if amino_acid in aa_dict_3to1.keys():  # else throw some kind of error message
+                        fasta_list.append(aa_dict_3to1[amino_acid])
+            fasta = "".join(fasta_list)
+        return fasta
