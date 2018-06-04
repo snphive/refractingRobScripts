@@ -14,9 +14,8 @@ yasara.info.mode = 'txt'
 r_path = ''
 foldx_path = ''
 agadir_path = ''
-qsub_path = ''  # don't think this is needed so may remove it.. (from repair.py too)
-results_directory = ''
-results_pdb_directory = ''
+results_path = ''
+results_pdb_path = ''
 aa_dict_1to3 = {}
 aa_dict_3to1 = {}
 gatekeepers = []
@@ -32,8 +31,7 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
         r_path = paths_and_dictionaries['ROOT']['R_path']
         foldx_path = paths_and_dictionaries['ROOT']['FoldX_path']
         agadir_path = paths_and_dictionaries['ROOT']['Agadir_path']
-        qsub_path = paths_and_dictionaries['ROOT']['Qsub_path']
-        results_directory = paths_and_dictionaries['ROOT']['results_path']
+        results_path = paths_and_dictionaries['ROOT']['results_path']
         aa_dict_1to3 = paths_and_dictionaries['ROOT']['aa_dict_1to3']
         aa_dict_3to1 = paths_and_dictionaries['ROOT']['aa_dict_3to1']
         gatekeepers = paths_and_dictionaries['ROOT']['gatekeepers']
@@ -41,76 +39,59 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
     except yaml.YAMLError as exc:
         print(exc)
 
-# starting_directory = os.getcwd()
-pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
+
+path_repaired_pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
+
+# def _get_pdb_name_from_repaired_pdb_folder():
+# repaired_pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
+# return repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1]
+
+pdb_name = path_repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1] # removes the path and the repair prefix too
 gatekeepers = ['R']  # for testing purposes only (to speed up solubis)
-pdb_name = pdb.split('/')[-1].split('.')[0].split('_')[-1]
-results_pdb_directory = results_directory + '/' + pdb_name
-results_pdb_Runs_Solubis_directory = results_pdb_directory + '/Runs/Solubis'
 print pdb_name
-agadirs = []
-totals = []
-total_pdb = 0
+# agadirs = []   can be deleted - NOT USED
+globaltotal_Tango_all_chains_sum = 0
+# def change_dir_to_pdb_Run_Solubis():
+results_pdb_path = results_path + '/' + pdb_name
+results_pdb_Runs_Solubis_path = results_pdb_path + '/Runs/Solubis'
+os.chdir(results_pdb_Runs_Solubis_path)
 
-os.chdir(results_pdb_Runs_Solubis_directory)
+##################################  FOR EACH CHAIN, FIND APR STRETCHES IN THIS REPAIRED PDB FILE  ##################################
 
-indiv = open('individual_list.txt', 'w')
+individual_list_all_mutants = open('individual_list.txt', 'w')  # NOT SURE WHAT THIS LIST IS USED FOR
 index_program = 0
+
 for protein_chain in protein_chains:
-    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + protein_chain + '/PSX_globaltotal.out', 'r').readlines()
-    header_for_PSX_globaltotal_table = f[0].split()
-    old_fasta_lines = open(results_pdb_directory + '/Fasta/' + pdb_name + '_' + protein_chain + '.fasta', 'r').readlines()
-    old_fasta = []
-    if len(old_fasta_lines) == 2:
-        for a in old_fasta_lines[1]:
-            old_fasta.append(a)
-    else:
-        for old_fasta_line in old_fasta_lines[1:]:
-            for a in old_fasta_line:
-                old_fasta.append(a)
-    old_fasta = "".join(old_fasta)
-    for x, program in enumerate(header_for_PSX_globaltotal_table):
-        if 'TANGO' == program:
-            index_program = x
-    total = f[1].split()[index_program]
-    totals.append(total)
-    total_pdb = total_pdb + float(total)
-    # get stretches
-    f = open(results_pdb_directory + '/Agadir/' + pdb_name + '_' + protein_chain + '/PSX_tangowindow.out', 'r').readlines()
-    stretches = []
-    for line in f[1:]:
-        new_stretches = []
-        pieces = line.split()
-        score = pieces[-2]
-        length = pieces[-1]
-        stretch_with_gk = pieces[2:5]
-        stretch_with_gk = "".join(stretch_with_gk)
-        stretch = pieces[-4]
-        index_stretch = old_fasta.find(stretch)
-        for x, aa in enumerate(stretch):
-            index_mutation = str(index_stretch + x + 1)
+################################## FOR EACH CHAIN, DIG OUT THE TANGO WINDOW SCORE ##################################
+    tangowindow_file = open(results_pdb_path + '/Agadir/' + pdb_name + '_' + protein_chain + '/PSX_tangowindow.out', 'r').readlines()
+############### FOR EACH LINE IN TANGO WINDOW DIG OUT THE APR and ITS POSITION IN THE FULL LENGTH PROTEIN ##########
+    for line in tangowindow_file[1:]:
+        # getTangoScore(line): try return line.split()[-2]
+        apr = line.split()[-4]
+        apr_index = int(float(line.split()[-6]))
+#### FOR EACH RESIDUE IN THE APR, CREATE A MUTATION FOR EVERY GATEKEEPER. CREATE THE DIRECTORY STRUCTURE FOR EACH GK
+        # MUTATION, AND USE BUILDMODEL TO MUTATE THE REPAIRED PDB TO PRODUCE A MUTANT PDB - ####
+        for i, amino_acid in enumerate(apr):
+            mutation_position = str(apr_index + i + 1)  # NOT SURE WHY THIS NEEDS TO BE MADE INTO A STRING
             for gatekeeper in gatekeepers:
-                new_stretch = list(stretch)
-                new_stretch[x] = gatekeeper
-                new_stretch = "".join(new_stretch)
-                new_fasta = old_fasta.replace(stretch, new_stretch)
-                mutation = aa + protein_chain + index_mutation + gatekeeper
-                if not os.path.exists(mutation):
-                    os.makedirs(mutation)
-                os.chdir(mutation)
+                mutation_name = amino_acid + protein_chain + mutation_position + gatekeeper
+                if not os.path.exists(mutation_name):
+                    os.makedirs(mutation_name)
+                os.chdir(mutation_name)
                 if not os.path.exists('Fasta'):
-                   os.makedirs('Fasta')
+                    os.makedirs('Fasta')
                 if not os.path.exists('Agadir'):
                     os.makedirs('Agadir')
                 if not os.path.exists('Agadir/Options.txt'):
-                    subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
-                                shell=True)
-                if os.path.exists(results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
-                    subprocess.call('cp ' + results_pdb_directory + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
-                    subprocess.call('cp ' + results_pdb_directory + '/../../SourceFiles/FoldXFiles/* .', shell=True)
+                    subprocess.call('cp ' + results_pdb_path + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
+                                    shell=True)
+                if os.path.exists(results_pdb_path + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
+                    subprocess.call('cp ' + results_pdb_path + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
+                    subprocess.call('cp ' + results_pdb_path + '/../../SourceFiles/FoldXFiles/* .', shell=True)
                 else:
                     print 'Something is wrong'
 
+                # def _mutate_pdb_with_FoldX_BuildModel():
                 path_to_runscript = './'
                 repaired_pdbs = 'RepairPDB_' + pdb_name + '.pdb'
                 show_sequence_detail = False
@@ -121,11 +102,11 @@ for protein_chain in protein_chains:
                                                                    show_sequence_detail, action, print_networks,
                                                                    calculate_stability)
 
-                h = open('individual_list.txt', 'w')
-                h.write(mutation + ';\n')
-                h.close()
+                individual_list_for_this_mutant_only = open('individual_list.txt', 'w')
+                individual_list_for_this_mutant_only.write(mutation_name + ';\n')
+                individual_list_for_this_mutant_only.close()
 
-                grid_engine_job_name = __solubis_job_prefix__ + mutation
+                grid_engine_job_name = __solubis_job_prefix__ + mutation_name
                 no_queue = ''
                 no_max_memory = ''
                 no_cluster = ''
@@ -133,20 +114,21 @@ for protein_chain in protein_chains:
                 no_python_script = ''
                 GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
                                                            using_runscript, foldx_path, no_python_script)
-
-                indiv.write(mutation + ';\n')
+                individual_list_all_mutants.write(mutation_name + ';\n')
                 subprocess.call('qsub job.q', shell=True)
                 os.chdir('./..')
 
-indiv.close()
+individual_list_all_mutants.close()  # NOT SURE WHAT THIS LIST IS USED FOR
 GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__solubis_job_prefix__, 'all Solubis jobs to finish')
 
-# ListOfSolubisMutationResultsFolders
-dirs = sorted(glob.glob('./*'))
-name_agad = pdb_name
-print 'Name agad:\t' + name_agad
-pdb_name = 'RepairPDB_' + pdb_name
-print 'Name:\t' + pdb_name
+##################################  PERFORM ANALYSE COMPLEX  ##################################
+
+############# GET ALL THE SUBDIRECTORIES, THESE ARE THE DIRECTORIES MADE ABOVE FOR THE BUILDMODEL ALGORITHM, WHICH WILL
+####### CONTAIN THE NEWLY BUILT REPAIRED PDBS FOR THE GATEKEEPER MUTANTS ################
+# ListOfSolubisMutationFolderNames
+dirs = sorted(glob.glob('./*'))  # get list of all solubis mutation names
+repaired_pdb_name = 'RepairPDB_' + pdb_name
+print 'Name:\t' + repaired_pdb_name
 # SolubisMutationResultsFolder
 for path in dirs:
     if os.path.isdir(path):
@@ -156,8 +138,14 @@ for path in dirs:
         subprocess.call('rm runscript.txt', shell=True)
 
         path_to_runscript = './'
-        pdbs_to_analyse = pdb_name + '_1_0.pdb,' + pdb_name + '_1_1.pdb,' + pdb_name + '_1_2.pdb,WT_' + pdb_name + \
-                          '_1_0.pdb,WT_' + pdb_name + '_1_1.pdb,WT_' + pdb_name + '_1_2.pdb,'
+        common_prefix = repaired_pdb_name + '_1_'
+        WT_common_prefix = 'WT_' + common_prefix
+        pdbs_to_analyse = common_prefix + '0.pdb,' + \
+                          common_prefix + '1.pdb,' + \
+                          common_prefix + '2.pdb,' + \
+                          WT_common_prefix + '0.pdb,' + \
+                          WT_common_prefix + '1.pdb,' + \
+                          WT_common_prefix + '2.pdb,'
         show_sequence_detail = False
         action = '<AnalyseComplex>#'
         print_networks = False
@@ -166,12 +154,18 @@ for path in dirs:
                                                            show_sequence_detail, action, print_networks,
                                                            calculate_stability)
 
-        pdb = pdb_name + '_1_0.pdb'
+################## THIS PART OF CODE SEEMS TO SUGGEST THAT THE REPAIR ALGORITHM CAN CHANGE THE AMINO ACID SEQUENCE ??! ##################
+
+# def convert_repairedPdb_to_FASTA():
+# not sure why _1_0 is the pdb of choice
+        repaired_1_0_pdb = repaired_pdb_name + '_1_0.pdb'
         print os.getcwd()
-        f = open(pdb).readlines()
+        fasta_destination_path = os.getcwd() + 'Fasta/'
+        # pdb2fasta_instance.convert_pdb_to_FASTA(repaired_pdb, fasta_destination_path)
+        pdb_file = open(repaired_1_0_pdb).readlines()
         atomlines = []
         mols = []
-        for line in f:
+        for line in pdb_file:
             if 'ATOM' == line[0:4]:
                 mol = line[21]
                 atomlines.append(line)
@@ -186,19 +180,20 @@ for path in dirs:
                     aa = line[17:20]
                     fastalist.append(aa_dict_3to1[aa])
             fasta = "".join(fastalist)
-            print pdb_name + '_' + mol
+            print repaired_pdb_name + '_' + mol
             print fasta
-            f = open('Fasta/' + pdb_name + '_' + mol + '.fasta', 'w')
-            f.write('>' + pdb_name + '_' + mol + '\n')
-            f.write(fasta)
-            f.close()
+            # _write_repaired_pdb_name_in_fasta_file():
+            repaired_pdb_fasta_file = open('Fasta/' + repaired_pdb_name + '_' + mol + '.fasta', 'w')
+            repaired_pdb_fasta_file.write('>' + repaired_pdb_name + '_' + mol + '\n')
+            repaired_pdb_fasta_file.write(fasta)
+            repaired_pdb_fasta_file.close()
 
         grid_engine_job_name = __analyze_complex_job_prefix__ + mutation
         no_queue = ''
         no_max_memory = ''
         no_cluster = ''
         using_runscript = True
-        python_script_with_path = results_pdb_directory + '/../../SourceFiles/Scripts/agadir.py'
+        python_script_with_path = results_pdb_path + '/../../SourceFiles/Scripts/agadir.py'
         GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
                                                    using_runscript, foldx_path, python_script_with_path)
 
@@ -210,82 +205,90 @@ for path in dirs:
 message_to_print = 'all AnalyseComplex jobs to finish'
 GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__analyze_complex_job_prefix__, message_to_print)
 
-os.chdir(results_pdb_directory)
-g = open('SummarySolubis.txt', 'w')
-g.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
-analyseComplex = False
-if os.path.isfile('./Repair/Interaction_AnalyseComplex_' + pdb_name + '.fxout'):
-    analyseComplex = True
-    h = open('./Repair/Interaction_AnalyseComplex_' + pdb_name + '.fxout').readlines()
-    Interactions = []
-    for line in h[9:]:
+################### WRITE A SUMMARY FILE WITH YOUR SOLUBIS RESULTS - not sure this summary text file actually contains anything ##################
+############### FIRST IT LOOKS TO SEE IF ANALYSE COMPLEX FILE EXISTS (IN REPAIR FOLDER), I.E. I ASSUME THIS WAS CREATED ABOVE #########
+os.chdir(results_pdb_path)
+solubis_summary_file = open('SummarySolubis.txt', 'w')
+solubis_summary_file.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
+################### THE FIRST THING THE SUMMARY FILE WILL HAVE WRITTEN TO IT IS the list of Interactions between protein chains from the interaction_analysecomplex_pdb file)###################
+analyse_complex = False
+if os.path.isfile('./Repair/Interaction_AnalyseComplex_' + repaired_pdb_name + '.fxout'):  # WHAT IS THE ABSOLUTE PATH HERE ? THIS SEEMS TO BE IN Repair SUBFOLDER
+    analyse_complex = True
+    interact_ac_pdb_fxout_file = open('./Repair/Interaction_AnalyseComplex_' + repaired_pdb_name + '.fxout').readlines()
+    interactions = []
+    for line in interact_ac_pdb_fxout_file[9:]:
         pieces = line.split('\t')
-        mol1 = pieces[1]
-        mol2 = pieces[2]
-        molcomp = mol1 + '_' + mol2
-        Interactions.append(molcomp)
-    interactionlist = []
-    for i in Interactions:
-        interactionlist.append('Complex_' + i)
-    interactionstring = "\t".join(interactionlist)
-    g.write(interactionstring + '\n')
+        protein_chain_1 = line.split('\t')[1]  # does this work to be same as mol1 and mol2 ??
+        protein_chain_2 = line.split('\t')[2]  # does this work to be same as mol1 and mol2 ??
+        protein_chain_complex = protein_chain_1 + '_' + protein_chain_2
+        interactions.append(protein_chain_complex)
+    interaction_list = []
+    for i in interactions:
+        interaction_list.append('Complex_' + i)
+    interaction_string = "\t".join(interaction_list)
+    solubis_summary_file.write(interaction_string + '\n')
 else:
-    g.write('\n')
+    solubis_summary_file.write('\n')
 dirs = sorted(glob.glob('./Runs/Solubis/*'))
 
-path_agad_list = glob.glob('./Agadir/*')
+agadir_outputs_wt_pdb_chains = glob.glob('./Agadir/*')  # does this ignore Options.txt ? Just the pdb_protein_chain folders?
 TangoWT = 0
-for i in path_agad_list:
-    if os.path.isdir(i):
-        print i
-        f = open(i + '/PSX_globaltotal.out', 'r').readlines()
+for agadir_outputs_wt_pdb_chain in agadir_outputs_wt_pdb_chains:  # agadir_outputs_pdb_chains
+    if os.path.isdir(agadir_outputs_wt_pdb_chain):
+        print agadir_outputs_wt_pdb_chain
+        f = open(agadir_outputs_wt_pdb_chain + '/PSX_globaltotal.out', 'r').readlines()
         pieces = f[1].split()
         TangoMol = float(pieces[2])
         TangoWT = TangoWT + TangoMol
 print 'TangoTotalWT = ' + str(TangoWT)
 
-for path in dirs:
-    if os.path.isdir(path):
-        mut = path.split('/')[-1]
-        mol = mut[1]
-        f = open(path + '/Average_BuildModel_' + pdb_name + '.fxout', 'r').readlines()
-        ddG = f[9].split()[2]
-        path_agad_list = glob.glob(path + '/Agadir/*')
-        TangoMut = 0
-        for i in path_agad_list:
-            if os.path.isdir(i):
-                f = open(i + '/PSX_globaltotal.out', 'r').readlines()
+for path in dirs:  # ./Runs/Solubis/AH92R
+    if os.path.isdir(path):  # returns True if path is an existing directory (? subdirectory of this current dir ?)
+        # mut = path.split('/')[-1]  # AH92R
+        # mol = mut[1]  # H
+        f = open(path + '/Average_BuildModel_' + repaired_pdb_name + '.fxout', 'r').readlines()  # av_buildModel_repairedPdb_fxout_file
+        ddG = f[9].split()[2]  # 13.3781
+#  GO THROUGH THE AGADIR RESULTS FOLDERS FOR EACH CHAIN AND EXTRACT THE GLOBAL TANGO SCORE
+        agadir_outputs_mutant_pdb_chains = glob.glob(path + '/Agadir/*')  # everything in Runs/Solubis/AH92R/Agadir/ (they are strings that include the relative path)
+        TangoMut = 0  # how can this be 1630.285, surely it should be 0 !!?
+        for agadir_outputs_mutant_pdb_chain in agadir_outputs_mutant_pdb_chains:
+            if os.path.isdir(i): # isn't this redundant seeing as how path_agad_list is obtained the line above by getting everything in the Agadir folder.
+                # def get_globalTango_from_PSX_globaltotalout_file(path)
+                f = open(agadir_outputs_mutant_pdb_chain + '/PSX_globaltotal.out', 'r').readlines()  # globalTango_file
                 pieces = f[1].split()
-                TangoMol = float(pieces[2])
-                TangoMut = TangoMut + TangoMol
-                path_agad = i
-        print 'TangoTotalMut = ' + str(TangoMut)
+                TangoMol = float(pieces[2])  # ?
+                TangoMut = TangoMut + TangoMol # ? 1630.. ?
+                path_agad = agadir_outputs_mutant_pdb_chain  # ./Runs/Solubis/AH92R/Agadir/RepairPDB_Ab82b0sLigand_H  NOT SURE WHAT IT IS SHOWING CHAIN P !!?? It's because Agadir is outputting results for all the chains.. why ??
+        print 'TangoTotalMut = ' + str(TangoMut)  # does a number need to be parsed to a string in order to print it out??
+        print 'TangoTotalMut not as string... = ' + TangoMut  # does a number need to be parsed to a string in order to print it out??
         print path_agad
-        f = open(path_agad + '/PSX_globaltotal.out', 'r').readlines()
+        f = open(path_agad + '/PSX_globaltotal.out', 'r').readlines()  # opening the globalTango file again ?
         print f[1]
-        mol = mut[1]
-        if analyseComplex:
-            f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_0.fxout', 'r').readlines()
+        # mol = mut[1]
+        if analyse_complex:
+            common_prefix_AC = path + '/Interaction_AnalyseComplex_' + repaired_pdb_name + '_1_'
+            common_prefix_AC_WT = path + '/Interaction_AnalyseComplex_WT_' + repaired_pdb_name + '_1_'
+            f = open(common_prefix_AC + '0.fxout', 'r').readlines()
             complex_Mut1 = []
             for line in f[9:]:
                 complex_Mut1.append(float(line.split()[5]))
-            f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_1.fxout', 'r').readlines()
+            f = open(common_prefix_AC + '1.fxout', 'r').readlines()
             complex_Mut2 = []
             for line in f[9:]:
                 complex_Mut2.append(float(line.split()[5]))
-            f = open(path + '/Interaction_AnalyseComplex_' + pdb_name + '_1_2.fxout', 'r').readlines()
+            f = open(common_prefix_AC + '2.fxout', 'r').readlines()
             complex_Mut3 = []
             for line in f[9:]:
                 complex_Mut3.append(float(line.split()[5]))
-            f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_0.fxout', 'r').readlines()
+            f = open(common_prefix_AC_WT + '0.fxout', 'r').readlines()
             complex_WT1 = []
             for line in f[9:]:
                 complex_WT1.append(float(line.split()[5]))
-            f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_1.fxout', 'r').readlines()
+            f = open(common_prefix_AC_WT + '1.fxout', 'r').readlines()
             complex_WT2 = []
             for line in f[9:]:
                 complex_WT2.append(float(line.split()[5]))
-            f = open(path + '/Interaction_AnalyseComplex_WT_' + pdb_name + '_1_2.fxout', 'r').readlines()
+            f = open(common_prefix_AC_WT + '2.fxout', 'r').readlines()
             complex_WT3 = []
             for line in f[9:]:
                 complex_WT3.append(float(line.split()[5]))
@@ -302,6 +305,9 @@ for path in dirs:
             Complex = ""
             ComplexSum = 0
         dTango = float(TangoMut) - float(TangoWT)
+        mut = path.split('/')[-1]
+        mol = mut[1]
+        mol2 = path.split('/')[-1][1]
         sumstring = mut + '\t' + mol + '\t' + ddG + '\t' + str(dTango) + '\t' + str(ComplexSum) + '\t' + Complex + '\n'
-        g.write(sumstring)
-g.close()
+        solubis_summary_file.write(sumstring)
+solubis_summary_file.close()
