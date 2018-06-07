@@ -3,17 +3,19 @@ import time
 import yaml
 
 
-with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
-          'r') as stream:
-    try:
-
-        paths_and_dictionaries = yaml.load(stream)
-        aa_dict_3to1 = paths_and_dictionaries['ROOT']['aa_dict_3to1']
-
-    except yaml.YAMLError as exc:
-        print(exc)
-
 class GUM(object):
+
+    aa_dict_3to1 = {}
+    foldx_path = ''
+
+    with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts/pathsAndDictionaries.yaml",
+              'r') as stream:
+        try:
+            paths_and_dictionaries = yaml.load(stream)
+            aa_dict_3to1 = paths_and_dictionaries['ROOT']['aa_dict_3to1']
+            foldx_path = paths_and_dictionaries['ROOT']['FoldX_path']
+        except yaml.YAMLError as exc:
+            print(exc)
 
     @staticmethod
     def wait_for_grid_engine_job_to_complete(grid_engine_job_prefix, message_to_print):
@@ -96,24 +98,35 @@ class GUM(object):
         return fasta
 
     @staticmethod
-    def convert_pdb_to_fasta(pdb):
-        pdb_file = open(pdb).readlines()
-        atom_lines = []
-        protein_chains = []
-        for line in pdb_file:
-            if 'ATOM' == line[0:4]:
-                protein_chain = line[21]
-                atom_lines.append(line)
-            if protein_chain not in protein_chains:
-                protein_chains.append(protein_chain)
-        for protein_chain in protein_chains:
-            fasta_list = []
-            resnum = '0'
-            for line in atom_lines:
-                if line[21] == protein_chain and resnum != line[22:26].strip(' '):
-                    resnum = line[22:26].strip(' ')
-                    amino_acid = line[17:20]
-                    if amino_acid in aa_dict_3to1.keys():  # else throw some kind of error message
-                        fasta_list.append(aa_dict_3to1[amino_acid])
-            fasta = "".join(fasta_list)
-        return fasta
+    def extract_fasta_from_pdb(pdbs, destination_relative_to_start_path):
+        for pdb in pdbs:
+            pdb_file = open(pdb).readlines()
+            atom_lines = []
+            protein_chains = []
+            for line in pdb_file:
+                if 'ATOM' == line[0:4]:
+                    protein_chain = line[21]
+                    atom_lines.append(line)
+                    if protein_chain not in protein_chains:
+                        protein_chains.append(protein_chain)
+            for protein_chain in protein_chains:
+                fasta_list = []
+                resnum = '0'
+                for line in atom_lines:
+                    if line[21] == protein_chain and resnum != line[22:26].strip(' '):
+                        resnum = line[22:26].strip(' ')
+                        amino_acid = line[17:20]
+                        if amino_acid in GUM.aa_dict_3to1.keys():  # else throw some kind of exception or error message?
+                            fasta_list.append(GUM.aa_dict_3to1[amino_acid])
+                        else:
+                            print 'This 3-letter word is not recognised as 1 of the 20 amino acids! ' \
+                                  'Cannot extract FASTA from ' + pdb + ' !'
+                fasta_sequence = "".join(fasta_list)
+                pdb_name = pdb.split('/')[-1].split('.')[0]
+                print pdb_name + '_' + protein_chain
+                print fasta_sequence
+                fasta_file = open(destination_relative_to_start_path + 'Fasta/' + pdb_name + '_' +
+                                  protein_chain + '.fasta', 'w')
+                fasta_file.write('>' + pdb_name + '_' + protein_chain + '\n')
+                fasta_file.write(fasta_sequence)
+                fasta_file.close()
