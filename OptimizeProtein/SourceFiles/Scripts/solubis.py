@@ -7,13 +7,13 @@ import GeneralUtilityMethods
 from OptimizeProtein import yasara
 import yaml
 
+
 protein_chains = sys.argv[1].split('_')  # maybe get this through the constructor when you have made it into a class
 yasara.info.mode = 'txt'
 r_path = ''
 foldx_path = ''
 agadir_path = ''
 results_path = ''
-results_pdb_path = ''
 aa_dict_1to3 = {}
 aa_dict_3to1 = {}
 gatekeepers = []
