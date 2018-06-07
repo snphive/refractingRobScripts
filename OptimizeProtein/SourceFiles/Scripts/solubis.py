@@ -40,7 +40,7 @@ with open("/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts
 # repaired_pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
 # return repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1]
 path_repaired_pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
-pdb_name = path_repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1] # removes the path and the repair prefix too
+pdb_name = path_repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1]  # removes the path and the repair prefix too
 
 gatekeepers = ['R']  # for testing purposes only (to speed up solubis)
 print pdb_name
@@ -110,18 +110,18 @@ individual_list_all_mutants.close()  # NOT SURE WHAT THIS LIST IS USED FOR
 GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__solubis_job_prefix__, 'all Solubis jobs to finish')
 
 ###################  RUN FOLDX ANALYSE COMPLEX on the outputs of BUILDMODEL ##################################
-#  os.chdir(results_pdb_Runs_Solubis_path)  # this is the way to show the absolute path for glob glob otherwise it collates the whole path
-all_solubis_mutant_folder_paths = sorted(glob.glob('./*'))
+all_mutants_in_Solubis_path = sorted(glob.glob('./*'))
 repaired_pdb_name = 'RepairPDB_' + pdb_name
 repaired_pdb_name_1_ = repaired_pdb_name + '_1_'
 wt_repaired_pdb_name_1_ = 'WT_' + repaired_pdb_name_1_
 _0_1_2_pdbs = ['0.pdb,', '1.pdb,', '2.pdb,']
 
-for solubis_mutant_folder_path in all_solubis_mutant_folder_paths:
-    if os.path.isdir(solubis_mutant_folder_path):
-        mutant_folder_name = solubis_mutant_folder_path.split('/')[-1]
+for mutant_in_Solubis_path in all_mutants_in_Solubis_path:
+    if os.path.isdir(mutant_in_Solubis_path):
+        mutant_folder_name = mutant_in_Solubis_path.split('/')[-1]
         os.chdir(mutant_folder_name)
-        subprocess.call('cp runscript.txt runscript_build.txt', shell=True)  # rename runscript to runscript_build.txt - WHY?
+        # def _make_backup_of_runscript():
+        subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
         subprocess.call('rm runscript.txt', shell=True)
 
         path_to_runscript = './'
@@ -141,39 +141,10 @@ for solubis_mutant_folder_path in all_solubis_mutant_folder_paths:
                                                            show_sequence_detail, action, print_networks,
                                                            calculate_stability)
 
-## THIS PART OF CODE SEEMS TO SUGGEST THAT THE REPAIR ALGORITHM CAN CHANGE THE AMINO ACID SEQUENCE .. is that right ?? ###
-
-# def convert_repairedPdb_to_FASTA():
-# not sure why _1_0 is the pdb of choice
-        repaired_1_0_pdb = repaired_pdb_name + '_1_0.pdb'
         print os.getcwd()
-        fasta_destination_path = os.getcwd() + 'Fasta/'
-        # pdb2fasta_instance.convert_pdb_to_FASTA(repaired_pdb, fasta_destination_path)
-        pdb_file = open(repaired_1_0_pdb).readlines()
-        atomlines = []
-        mols = []
-        for line in pdb_file:
-            if 'ATOM' == line[0:4]:
-                mol = line[21]
-                atomlines.append(line)
-                if mol not in mols:
-                    mols.append(mol)
-        for mol in mols:
-            fastalist = []
-            resnum = '0'
-            for line in atomlines:
-                if line[21] == mol and resnum != line[22:26].strip(' '):
-                    resnum = line[22:26].strip(' ')
-                    aa = line[17:20]
-                    fastalist.append(aa_dict_3to1[aa])
-            fasta = "".join(fastalist)
-            print repaired_pdb_name + '_' + mol
-            print fasta
-            # _write_repaired_pdb_name_in_fasta_file():  HOWEVER, IT NAMES IT BY REPAIRED PDB BUT GETS SEQUENCE FROM REPAIRED PDB 1_0_ .. WHAT's going on here?
-            repaired_pdb_fasta_file = open('Fasta/' + repaired_pdb_name + '_' + mol + '.fasta', 'w')
-            repaired_pdb_fasta_file.write('>' + repaired_pdb_name + '_' + mol + '\n')
-            repaired_pdb_fasta_file.write(fasta)
-            repaired_pdb_fasta_file.close()
+        # Note: _1_0 is random choice, other two are same.
+        # cwd is Results/pdbname/Runs/Solubis/mutant_name
+        GeneralUtilityMethods.GUM.extract_fasta_from_pdb(repaired_pdb_name + '_1_0.pdb', './')
 
         grid_engine_job_name = __analyze_complex_job_prefix__ + mutant_folder_name
         no_queue = ''
@@ -188,18 +159,18 @@ for solubis_mutant_folder_path in all_solubis_mutant_folder_paths:
         os.chdir('./..')  # is this Runs/Solubis folder ?
         whatdir = os.getcwd()  # check here
     else:
-        print solubis_mutant_folder_path
+        print mutant_in_Solubis_path
 
 message_to_print = 'all AnalyseComplex jobs to finish'
 GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(__analyze_complex_job_prefix__, message_to_print)
 
-#### WRITE A SUMMARY FILE WITH YOUR SOLUBIS RESULTS - not sure this summary text file actually contains anything ####
+#### WRITE A SUMMARY FILE WITH YOUR SOLUBIS RESULTS  ####
 os.chdir(results_pdb_path)
 solubis_summary_file = open('SummarySolubis.txt', 'w')
-solubis_summary_file.write('Mutation\tMol\tddG\tdTANGO\tComplexSum\t')
-has_interaction_AC_fxout_file_for_repaired_pdb = False
+solubis_summary_file.write('Mutation\tProteinChahin\tddG\tdTANGO\tComplexSum\t')
+has_I_AC_fxout_file_for_repaired_pdb = False
 if os.path.isfile('./Repair/' + __I_AC__ + repaired_pdb_name + '.fxout'):  # perhaps use absolute path?
-    has_interaction_AC_fxout_file_for_repaired_pdb = True
+    has_I_AC_fxout_file_for_repaired_pdb = True
     interact_ac_pdb_fxout_file = open('./Repair/' + __I_AC__ + repaired_pdb_name + '.fxout').readlines()
     protein_chain_complexes = []
     for line in interact_ac_pdb_fxout_file[9:]:
@@ -220,77 +191,72 @@ for agadir_outputs_wt_pdb_chain in all_agadir_outputs_wt_pdb_chains:  # agadir_o
         f = open(agadir_outputs_wt_pdb_chain + '/PSX_globaltotal.out', 'r').readlines()
         TangoWT += float(f[1].split()[2])
 print 'Tango GlobalTotal score for WT protein = ' + str(TangoWT)
-
-whatiscurrentwd = os.getcwd()
-## I'm not sure this works even in the orginal code, because the folder in results/pdbname. For the similar for and if on line 134 the cwd is runs/solubis
-for solubis_mutant_folder_path in all_solubis_mutant_folder_paths:
-    if os.path.isdir(solubis_mutant_folder_path):  # returns True if path is an existing directory (? subdirectory of this current dir ?)
-        # mut = path.split('/')[-1]  # AH92R
-        # mol = mut[1]  # H
-        f = open(solubis_mutant_folder_path + '/Average_BuildModel_' + repaired_pdb_name + '.fxout', 'r').readlines()  # av_buildModel_repairedPdb_fxout_file
-        ddG = f[9].split()[2]  # 13.3781
+os.chdir(results_pdb_Runs_Solubis_path)
+for solubis_mutant_folder_path in all_mutants_in_Solubis_path:
+    if os.path.isdir(solubis_mutant_folder_path):
+        f = open(solubis_mutant_folder_path + '/Average_BuildModel_' + repaired_pdb_name + '.fxout', 'r').readlines()
+        ddG = f[9].split()[2]  # THIS IS THE FOLDX STABILITY VALUE
 
         all_agadir_output_files_for_this_mutant_chain_paths = glob.glob(solubis_mutant_folder_path + '/Agadir/*')
         TangoMut = 0
-        TangoMut2 = 0  # check this works
         for agadir_output_files_for_this_mutant_chain_path in all_agadir_output_files_for_this_mutant_chain_paths:
             if os.path.isdir(agadir_output_files_for_this_mutant_chain_path): # isn't this redundant cos path_agad_list is obtained the line above by getting everything in the Agadir folder.
                 # def get_globalTango_from_PSX_globaltotalout_file(path):
                 f = open(agadir_output_files_for_this_mutant_chain_path + '/PSX_globaltotal.out', 'r').readlines()  # globalTango_file
-                pieces = f[1].split()  # can delete if line 243 works
-                TangoMol = float(pieces[2])  # can delete if line 243 works
-                TangoMut = TangoMut + TangoMol  # can delete if line 243 works
-                TangoMut2 += float(f[1].split()[2])  # check this works
+                TangoMut += float(f[1].split()[2])
                 path_agad = agadir_output_files_for_this_mutant_chain_path  # ./Runs/Solubis/AH92R/Agadir/RepairPDB_Ab82b0sLigand_H
         print 'Tango GlobalTotal score for mutant protein = ' + str(TangoMut)
         print path_agad  # don't understand this. It goes through all the chains but only stores the last one to open the tango file on line below
         f = open(path_agad + '/PSX_globaltotal.out', 'r').readlines()  # opening the globalTango file again ?
-        print f[1]  # which it then just prints and doesn't use ???
-        # mol = mut[1]
-        if has_interaction_AC_fxout_file_for_repaired_pdb:
-            path_IAC_repaired_pdb_name_1_ = solubis_mutant_folder_path + '/' + __I_AC__ + repaired_pdb_name_1_
-            path_IAC_wt_repaired_pdb_name_1_ = solubis_mutant_folder_path + '/' + __I_AC__ + wt_repaired_pdb_name_1_
+        print f[1]  # which it then just prints and doesn't use ? - is this leftover from debugging
+        if has_I_AC_fxout_file_for_repaired_pdb:
+            path_I_AC_repaired_pdb_name_1_ = solubis_mutant_folder_path + '/' + __I_AC__ + repaired_pdb_name_1_
+            path_I_AC_wt_repaired_pdb_name_1_ = solubis_mutant_folder_path + '/' + __I_AC__ + wt_repaired_pdb_name_1_
             _0_1_2_fxout = ['0.fxout', '1.fxout', '2.fxout']
-            f = open(path_IAC_repaired_pdb_name_1_ + _0_1_2_fxout[0], 'r').readlines()
+            # for fxout in _0_1_2_fxout:
+            #     _get_interaction_energies_from_I_AC_file(path_IAC_repaired_pdb_name_1_ + fxout)
+            # complex_Mut1 = _get_interaction_energies_from_I_AC_file(path_IAC_repaired_pdb_name_1_ + _0_1_2_fxout[0])
+            f = open(path_I_AC_repaired_pdb_name_1_ + _0_1_2_fxout[0], 'r').readlines()
             complex_Mut1 = []
             for line in f[9:]:
                 complex_Mut1.append(float(line.split()[5]))
-            f = open(path_IAC_repaired_pdb_name_1_ + _0_1_2_fxout[1], 'r').readlines()
+            f = open(path_I_AC_repaired_pdb_name_1_ + _0_1_2_fxout[1], 'r').readlines()
             complex_Mut2 = []
             for line in f[9:]:
                 complex_Mut2.append(float(line.split()[5]))
-            f = open(path_IAC_repaired_pdb_name_1_ + _0_1_2_fxout[2], 'r').readlines()
+            f = open(path_I_AC_repaired_pdb_name_1_ + _0_1_2_fxout[2], 'r').readlines()
             complex_Mut3 = []
             for line in f[9:]:
                 complex_Mut3.append(float(line.split()[5]))
-            f = open(path_IAC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[0], 'r').readlines()
+            f = open(path_I_AC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[0], 'r').readlines()
             complex_WT1 = []
             for line in f[9:]:
                 complex_WT1.append(float(line.split()[5]))
-            f = open(path_IAC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[1], 'r').readlines()
+            f = open(path_I_AC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[1], 'r').readlines()
             complex_WT2 = []
             for line in f[9:]:
                 complex_WT2.append(float(line.split()[5]))
-            f = open(path_IAC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[2], 'r').readlines()
+            f = open(path_I_AC_wt_repaired_pdb_name_1_ + _0_1_2_fxout[2], 'r').readlines()
             complex_WT3 = []
             for line in f[9:]:
                 complex_WT3.append(float(line.split()[5]))
-            ComplexList = []
-            ComplexSum = 0
+
+            dInteractionEnergies_per_complex_list = []
+            dInteractionEnergies_all_complexes_summed = 0
             for x, line in enumerate(f[9:]):
-                complex_WT = float((complex_WT1[x] + complex_WT2[x] + complex_WT3[x]) / 3)
-                complex_Mut = float((complex_Mut1[x] + complex_Mut2[x] + complex_Mut3[x]) / 3)
-                Complex = complex_Mut - complex_WT
-                ComplexSum = ComplexSum + Complex
-                ComplexList.append(str(Complex))
-            Complex = "\t".join(ComplexList)
+                average_interaction_energy_per_complex_WT = float((complex_WT1[x] + complex_WT2[x] + complex_WT3[x]) / 3)
+                average_interaction_energy_per_complex_Mut = float((complex_Mut1[x] + complex_Mut2[x] + complex_Mut3[x]) / 3)
+                dInteractionEnergies_for_each_complex = average_interaction_energy_per_complex_Mut - average_interaction_energy_per_complex_WT
+                dInteractionEnergies_all_complexes_summed += dInteractionEnergies_for_each_complex
+                dInteractionEnergies_per_complex_list.append(str(dInteractionEnergies_for_each_complex))
+            dInteractionEnergies_per_complex = "\t".join(dInteractionEnergies_per_complex_list)
         else:
-            Complex = ""
-            ComplexSum = 0
+            dInteractionEnergies_per_complex = ""
+            dInteractionEnergies_all_complexes_summed = 0
         dTango = float(TangoMut) - float(TangoWT)
-        mut = solubis_mutant_folder_path.split('/')[-1]
-        mol = mut[1]
-        mol2 = solubis_mutant_folder_path.split('/')[-1][1] # DOes this give same as above two lines?
-        sumstring = mut + '\t' + mol + '\t' + ddG + '\t' + str(dTango) + '\t' + str(ComplexSum) + '\t' + Complex + '\n'
-        solubis_summary_file.write(sumstring)
+        mutation_name = solubis_mutant_folder_path.split('/')[-1]
+        protein_chain = mutation_name[1]  # Does this give same as above two lines?
+        row_of_values_per_mutation = mutation_name + '\t' + protein_chain + '\t' + ddG + '\t' + str(dTango) + '\t' + \
+                                     str(dInteractionEnergies_all_complexes_summed) + '\t' + dInteractionEnergies_per_complex + '\n'
+        solubis_summary_file.write(row_of_values_per_mutation)
 solubis_summary_file.close()
