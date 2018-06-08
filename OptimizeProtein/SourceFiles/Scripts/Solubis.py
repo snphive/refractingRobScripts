@@ -1,11 +1,15 @@
 # Get Tango results, parse stretches, get resnums, create fastafiles for agadirwrapper, get difference total tango
-import os
-import glob
-import subprocess
-import GeneralUtilityMethods
 from OptimizeProtein import yasara
+import glob
+import os
+import subprocess
 import yaml
+from GeneralUtilityMethods import GUM
+from Agadir import Agadir
+from FoldX import FoldX
 
+# import pydevd
+# pydevd.settrace('localhost', port=51234, stdoutToServer=True, stderrToServer=True)
 
 yasara.info.mode = 'txt'
 
@@ -31,137 +35,74 @@ class Solubis(object):
         self.analyze_complex_job_prefix = 'AC_'
         self.Int_AnalyComp = 'Interaction_AnalyseComplex_'
         self.gatekeepers = ['R']  # for testing purposes only (to speed up solubis)
-        self.self.pdb_name_of_repaired_pdb = self._get_pdb_name_from_repaired_pdb_folder(self)
-        print self.self.pdb_name_of_repaired_pdb
+        self.pdb_name_of_repaired_pdb = self._get_pdb_name_from_repaired_pdb_folder()
+        self.repair_pdb_name = 'RepairPDB_' + self.pdb_name_of_repaired_pdb
+
+        print self.pdb_name_of_repaired_pdb
         self.results_pdb_Runs_Solubis_path = ''
-        self.run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self)
+        self.all_mutants_in_Solubis_path = ''
+        self.individual_list_all_mutants = open('individual_list.txt', 'w')  # NOT SURE WHAT THIS LIST IS USED FOR
 
     def _get_pdb_name_from_repaired_pdb_folder(self):
         path_to_repaired_pdb = glob.glob('./Repair/RepairPDB*.pdb')[0]
         return path_to_repaired_pdb.split('/')[-1].split('.')[0].split('_')[-1]
 
     def _change_dir_to_pdb_Run_Solubis(self):
-        self.results_pdb_path = self.results_path + '/' + self.self.pdb_name_of_repaired_pdb
-        self.results_pdb_Runs_Solubis_path = self.self.results_pdb_path + '/Runs/Solubis'
+        self.results_pdb_path = self.results_path + '/' + self.pdb_name_of_repaired_pdb
+        self.results_pdb_Runs_Solubis_path = self.results_pdb_path + '/Runs/Solubis'
         os.chdir(self.results_pdb_Runs_Solubis_path)
 
-def run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self):
-    self._change_dir_to_pdb_Run_Solubis(self)
-    individual_list_all_mutants = open('individual_list.txt', 'w')  # NOT SURE WHAT THIS LIST IS USED FOR
-    for protein_chain in self.protein_chains:
-        ##### FOR EACH CHAIN, GET ITS TANGO WINDOW RESULTS , FROM  WHICH IT SHOULD GET EACH APR SEQUENCE AND START POSITION #####
-        tangowindow_file = open(self.results_pdb_path + '/Agadir/' + self.pdb_name_of_repaired_pdb + '_' + protein_chain + '/PSX_tangowindow.out', 'r').readlines()
-        for line in tangowindow_file[1:]:
-            apr_sequence = line.split()[-4]
-            apr_index = int(float(line.split()[-6]))
-            #### FOR EACH APR, MUTATE EVERY RESIDUE TO EVERY GATEKEEPER AND RUN BUILD MODEL TO CREATE REPAIRED MUTANT FILES ####
-            for i, amino_acid in enumerate(apr_sequence):
-                mutation_position = apr_index + i + 1
-                for gatekeeper in self.gatekeepers:
-                    # def _build_mutant_fasta_agadir_directory_structure(gatekeeper)
-                    mutant_name = amino_acid + protein_chain + str(mutation_position) + gatekeeper
-                    if not os.path.exists(mutant_name):
-                        os.makedirs(mutant_name)
-                    os.chdir(mutant_name)
-                    if not os.path.exists('Fasta'):
-                        os.makedirs('Fasta')
-                    if not os.path.exists('Agadir'):
-                        os.makedirs('Agadir')
-                    if not os.path.exists('Agadir/Options.txt'):
-                        subprocess.call('cp ' + self.results_pdb_path + '/../../SourceFiles/AgadirFiles/* ./Agadir/.',
-                                        shell=True)
-                    if os.path.exists(self.results_pdb_path + '/Repair/RepairPDB_' + self.pdb_name_of_repaired_pdb + '.pdb'):
-                        subprocess.call('cp ' + self.results_pdb_path + '/Repair/RepairPDB_' + self.pdb_name_of_repaired_pdb + '.pdb .', shell=True)
-                        subprocess.call('cp ' + self.results_pdb_path + '/../../SourceFiles/FoldXFiles/* .', shell=True)
-                    else:
-                        print 'Something is wrong'
-                    # def _run_FoldX_BuildModel(mutation_name):
-                    path_to_runscript = './'
-                    repaired_pdbs = 'RepairPDB_' + self.pdb_name_of_repaired_pdb + '.pdb'
-                    show_sequence_detail = False
-                    action = '<BuildModel>#,individual_list.txt'
-                    print_networks = False
-                    calculate_stability = False
-                    GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, repaired_pdbs,
-                                                                       show_sequence_detail, action, print_networks,
-                                                                       calculate_stability)
-                    individual_list_for_this_mutant_only = open('individual_list.txt', 'w')
-                    individual_list_for_this_mutant_only.write(mutant_name + ';\n')
-                    individual_list_for_this_mutant_only.close()
-
-                    grid_engine_job_name = self.solubis_job_prefix + mutant_name
-                    no_queue = ''
-                    no_max_memory = ''
-                    no_cluster = ''
-                    using_runscript = True
-                    no_python_script = ''
-                    GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
-                                                               using_runscript, self.foldx_path, no_python_script)
-                    individual_list_all_mutants.write(mutant_name + ';\n')
-                    subprocess.call('qsub job.q', shell=True)
-                    os.chdir('./..')  # maybe pass the absolute path here
-    individual_list_all_mutants.close()  # NOT SURE WHAT THIS LIST IS USED FOR
-    GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(self.solubis_job_prefix, 'all Solubis jobs to finish')
-    self.run_FoldX_AnalyseComplex_(self)
+    def run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self):
+        self._change_dir_to_pdb_Run_Solubis()
+        agadir_instance = Agadir()
+        foldx_instance = FoldX()
+        for protein_chain in self.protein_chains:
+            tangowindow_file = open(self.results_pdb_path + '/Agadir/' + self.pdb_name_of_repaired_pdb + '_' +
+                                    protein_chain + '/PSX_tangowindow.out', 'r').readlines()
+            for line in tangowindow_file[1:]:
+                apr_sequence_and_index = agadir_instance.get_APR_sequence_and_index_from_line_in_tangowindow_file(line)
+                for i, amino_acid in enumerate(apr_sequence_and_index[0]):
+                    mutation_position = apr_sequence_and_index[1] + i + 1
+                    for gatekeeper in self.gatekeepers:
+                        mutant_name = amino_acid + protein_chain + str(mutation_position) + gatekeeper
+                        self._build_fasta_agadir_directory_structure_for_mutant(mutant_name)
+                        self._copy_Agadir_options_FoldX_files_repaired_pdb_to_mutant_folder(self, mutant_name, self.pdb_name_of_repaired_pdb)
+                        foldx_instance.prepare_for_FoldX_BuildModel(self, mutant_name, self.pdb_name_of_repaired_pdb)
+                        self.individual_list_all_mutants.write(mutant_name + ';\n')
+                        grid_engine_job_name = self.solubis_job_prefix + mutant_name
+                        python_script = ''
+                        self._run_runscript_on_grid_engine(grid_engine_job_name, python_script)
+                        os.chdir('./..')  # maybe pass the absolute path here ?
+        self.individual_list_all_mutants.close()  # NOT SURE WHAT THIS LIST IS USED FOR
 
     def run_FoldX_AnalyseComplex(self):
+        GUM.wait_for_grid_engine_job_to_complete(self.solubis_job_prefix, 'all Solubis jobs to finish')
         self.all_mutants_in_Solubis_path = sorted(glob.glob('./*'))
-        repair_pdb_name = 'RepairPDB_' + self.pdb_name_of_repaired_pdb
-        repair_pdb_name_1_ = repair_pdb_name + '_1_'
-        wt_repair_pdb_name_1_ = 'WT_' + repair_pdb_name_1_
-        _0_1_2_pdbs = ['0.pdb,', '1.pdb,', '2.pdb,']
-
+        foldx_instance = FoldX()
         for mutant_in_Solubis_path in self.all_mutants_in_Solubis_path:
             if os.path.isdir(mutant_in_Solubis_path):
                 mutant_folder_name = mutant_in_Solubis_path.split('/')[-1]
                 os.chdir(mutant_folder_name)
-                # def _make_backup_of_runscript():
-                subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
-                subprocess.call('rm runscript.txt', shell=True)
-                path_to_runscript = './'
-                pdbs_to_analyse = repair_pdb_name_1_ + _0_1_2_pdbs[0] + \
-                                  repair_pdb_name_1_ + _0_1_2_pdbs[1] + \
-                                  repair_pdb_name_1_ + _0_1_2_pdbs[2] + \
-                                  wt_repair_pdb_name_1_ + _0_1_2_pdbs[0] + \
-                                  wt_repair_pdb_name_1_ + _0_1_2_pdbs[1] + \
-                                  wt_repair_pdb_name_1_ + _0_1_2_pdbs[2]
-                show_sequence_detail = False
-                action = '<AnalyseComplex>#'
-                print_networks = False
-                calculate_stability = False
-                GeneralUtilityMethods.GUM.build_runscript_for_pdbs(path_to_runscript, pdbs_to_analyse,
-                                                                   show_sequence_detail, action, print_networks,
-                                                                   calculate_stability)
-
+                self._make_backup_of_runscript()
+                foldx_instance.prepare_for_FoldX_AnalyseComplex(self.repaired_pdb_name)
                 print os.getcwd()
                 # Note: _1_0 is random choice, other two are same.
                 # cwd is Results/pdbname/Runs/Solubis/mutant_name
-                GeneralUtilityMethods.GUM.extract_fasta_from_pdb(repair_pdb_name + '_1_0.pdb', './')
-
+                GUM.extract_fasta_from_pdb(self.repair_pdb_name_1_ + '0.pdb', './')
                 grid_engine_job_name = self.analyze_complex_job_prefix + mutant_folder_name
-                no_queue = ''
-                no_max_memory = ''
-                no_cluster = ''
-                using_runscript = True
                 python_script_with_path = self.results_pdb_path + '/../../SourceFiles/Scripts/agadir.py'
-                GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
-                                                           using_runscript, self.foldx_path, python_script_with_path)
-
-                subprocess.call('qsub job.q', shell=True)
+                self._run_runscript_and_agadir_on_grid_engine(grid_engine_job_name, python_script_with_path)
                 os.chdir('./..')  # is this Runs/Solubis folder ?
             else:
                 print mutant_in_Solubis_path
 
-        message_to_print = 'all AnalyseComplex jobs to finish'
-        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(self.analyze_complex_job_prefix, message_to_print)
-        self.write_summary_solubis_file(self)
-
     def write_summary_solubis_file(self):
+        GUM.wait_for_grid_engine_job_to_complete(self.analyze_complex_job_prefix, 'all AnalyseComplex jobs to finish')
         os.chdir(self.results_pdb_path)
         solubis_summary_file = open('SummarySolubis.txt', 'w')
         solubis_summary_file.write('Mutation\tProteinChahin\tddG\tdTANGO\tComplexSum\t')
         has_I_AC_fxout_file_for_repaired_pdb = False
-        if os.path.isfile('./Repair/' + self.Int_AnalyComp + self.repair_pdb_name + '.fxout'):  # perhaps use absolute path?
+        if os.path.isfile('./Repair/' + self.Int_AnalyComp + self.repair_pdb_name + '.fxout'):  # use absolute path?
             has_I_AC_fxout_file_for_repaired_pdb = True
             interact_ac_pdb_fxout_file = open('./Repair/' + self.Int_AnalyComp + self.repair_pdb_name + '.fxout').readlines()
             protein_chain_complexes = []
@@ -188,7 +129,8 @@ def run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self):
         for solubis_mutant_folder_path in self.all_mutants_in_Solubis_path:
             if os.path.isdir(solubis_mutant_folder_path):
                 f = open(solubis_mutant_folder_path + '/Average_BuildModel_' + self.repair_pdb_name + '.fxout', 'r').readlines()
-                ddG = f[9].split()[2]  # THIS IS THE FOLDX STABILITY VALUE
+                # # THIS IS THE FOLDX STABILITY VALUE # #
+                ddG = f[9].split()[2]
                 all_agadir_output_files_for_this_mutant_chain_paths = glob.glob(solubis_mutant_folder_path + '/Agadir/*')
                 TangoMut = 0
                 for agadir_output_files_for_this_mutant_chain_path in all_agadir_output_files_for_this_mutant_chain_paths:
@@ -253,3 +195,45 @@ def run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self):
                                      dInteractionEnergies_per_complex + '\n'
                 solubis_summary_file.write(row_of_values_per_mutation)
         solubis_summary_file.close()
+
+    # def _get_interaction_energies_from_I_AC_file(fxout_file_name):
+    #     fxout_file = open(fxout_file_name, 'r').readlines()
+    #     interaction_energies = []
+    #     for line in fxout_file[9:]:
+    #         interaction_energy.append(float(line.split()[5]))
+    #     return interaction_energies
+
+    def _build_fasta_agadir_directory_structure_for_mutant(self, mutant_name):
+        if not os.path.exists(mutant_name):
+            os.makedirs(mutant_name)
+        os.chdir(mutant_name)
+        if not os.path.exists('Fasta'):
+            os.makedirs('Fasta')
+        if not os.path.exists('Agadir'):
+            os.makedirs('Agadir')
+        else:
+            print 'Something is wrong'
+
+    def _copy_Agadir_options_FoldX_files_repaired_pdb_to_mutant_folder(self, mutant_name, pdb_name):
+        if os.getcwd().split('/')[-1] == mutant_name:
+            os.chdir(mutant_name)
+        if not os.path.exists('Agadir/Options.txt'):
+            subprocess.call('cp ' + self.results_pdb_path + '/../../SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
+        if os.path.exists(self.results_pdb_path + '/Repair/RepairPDB_' + pdb_name + '.pdb'):
+            subprocess.call('cp ' + self.results_pdb_path + '/Repair/RepairPDB_' + pdb_name + '.pdb .', shell=True)
+            subprocess.call('cp ' + self.results_pdb_path + '/../../SourceFiles/FoldXFiles/* .', shell=True)
+        else:
+            print 'Something is wrong'
+
+    def _run_runscript_on_grid_engine(self, grid_engine_job_name, python_script):
+        no_queue = ''
+        no_max_memory = ''
+        no_cluster = ''
+        using_runscript = True
+        GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
+                             using_runscript, self.foldx_path, python_script)
+        subprocess.call('qsub job.q', shell=True)
+
+    def _make_backup_of_runscript(self):
+        subprocess.call('cp runscript.txt runscript_build.txt', shell=True)
+        subprocess.call('rm runscript.txt', shell=True)
