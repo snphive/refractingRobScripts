@@ -31,3 +31,6 @@ class Agadir(object):
         for line in tangowindow_file[1:]:
             apr_sequences.append(line.split()[-4])
         return apr_sequences
+
+    def get_APR_sequence_and_index_from_line_in_tangowindow_file(self, line_in_tangowindow_file):
+        return [line_in_tangowindow_file.split()[-4], int(float(line_in_tangowindow_file.split()[-6]))]
