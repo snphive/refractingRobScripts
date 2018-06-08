@@ -1,9 +1,12 @@
+from OptimizeProtein import yasara
 import os
 import glob
 import subprocess
-import GeneralUtilityMethods
-from OptimizeProtein import yasara
+from GeneralUtilityMethods import GUM
 from Agadir import Agadir
+from Solubis import Solubis
+# import pydevd
+# pydevd.settrace('localhost', port=51234, stdoutToServer=True, stderrToServer=True)
 
 yasara.info.mode = 'txt'
 
@@ -64,18 +67,16 @@ class OptProt(object):
             # self._run_yasara_to_organise_pdb(pdb, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
 
-            GeneralUtilityMethods.GUM.extract_fasta_from_pdb(sorted(glob.glob('./PDBs/*.pdb')), './')
+            GUM.extract_fasta_from_pdb(sorted(glob.glob('./PDBs/*.pdb')), './')
             agadir_instance = Agadir(self.start_path)
-            path_to_fasta_files_relative_to_start_path = './'
-            agadir_instance.run_agadir_on_fasta_files(path_to_fasta_files_relative_to_start_path)
+            agadir_instance.run_agadir_on_fasta_files('./')
             self._run_agadir()
             self._run_repair_on_grid_engine(pdb_name)
             message_to_print = 'PDBs to be repaired'
-        GeneralUtilityMethods.GUM.wait_for_grid_engine_job_to_complete(self.repair_job_prefix, message_to_print)
+        GUM.wait_for_grid_engine_job_to_complete(self.repair_job_prefix, message_to_print)
 
     def perform_selected_computations(self):
         for pdb in self.pdb_list:
-
             self._build_results_directory_tree_for_each(pdb)  # also changes current directory into Results/pdb
             self._compute_stretchplot(pdb)
             if not os.path.exists('Runs/' + self.command):
@@ -133,7 +134,7 @@ class OptProt(object):
     # # # # Called by run_yasara_agadir_repair() # # # #
 
     # Yasara uses the term "molecules" to describe protein chains,
-    # so the variable names in this method are mol instead of protein_chain.
+    # so the variable names in this method are "mol" instead of "protein_chain.
     def _run_yasara_to_organise_pdb(self, pdb, pdb_name):
         yasara.run('DelObj all')
         yasara.run('LoadPDB' + self.single_space + self.start_path + '/PDBs/' + pdb)
@@ -162,20 +163,10 @@ class OptProt(object):
         using_runscript = False
         python_script_with_path_and_qsub = self.scripts_path + '/' + repair_python_script + \
                                 self.single_space + self.qsub_path
-        GeneralUtilityMethods.GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
+        GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
                                                    using_runscript, self.foldx_path, python_script_with_path_and_qsub)
         subprocess.call(self.qsub_path + 'qsub job.q', shell=True)
         os.chdir(self.start_path)
-
-    # def _run_repair_on_local_machine(self, pdb_name):
-
-    # def _run_agadir(self):
-    #     # pdb2fasta_python_script = 'pdb2fasta.py'
-    #     agadir_python_script = 'agadir.py'
-    #     # self._print_OptProt_calling_script(pdb2fasta_python_script)
-    #     # subprocess.call(__execute_python_and_path_to_script_fwdslash__ + pdb2fasta_python_script, shell=True)
-    #     self._print_OptProt_calling_script(agadir_python_script)
-    #     subprocess.call(self.__execute_python_and_path_to_script_fwdslash__ + agadir_python_script, shell=True)
 
     # # # # Called by perform_selected_computations() # # # #
 
@@ -216,6 +207,11 @@ class OptProt(object):
     def _compute(self, *args):
         for command in args:
             python_script = self._convert_command_name_to_python_script_name(command)
+            if python_script == 'solubis':
+                solubis_instance = Solubis(self.proteinChains)
+                solubis_instance.run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations()
+                solubis_instance.run_FoldX_AnalyseComplex()
+                solubis_instance.write_summary_solubis_file()
             self._print_OptProt_calling_script(python_script)
             if self.command == 'Supercharge' or self.command == 'DelPos' or self.command == 'Indiv':
                 subprocess.call(
