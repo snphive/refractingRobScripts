@@ -66,11 +66,9 @@ class OptProt(object):
             # current directory Results/pdb
             # self._run_yasara_to_organise_pdb(pdb, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
-
             GUM.extract_fasta_from_pdb(sorted(glob.glob('./PDBs/*.pdb')), './')
-            agadir_instance = Agadir(self.start_path)
-            agadir_instance.run_agadir_on_fasta_files('./')
-            self._run_agadir()
+            agadir_instance = Agadir(self.start_path, pdb_name)
+            agadir_instance.run_agadir_with_fasta_files('./')
             self._run_repair_on_grid_engine(pdb_name)
             message_to_print = 'PDBs to be repaired'
         GUM.wait_for_grid_engine_job_to_complete(self.repair_job_prefix, message_to_print)
@@ -207,7 +205,7 @@ class OptProt(object):
     def _compute(self, *args):
         for command in args:
             python_script = self._convert_command_name_to_python_script_name(command)
-            if python_script == 'solubis':
+            if python_script == 'solubis.py':
                 solubis_instance = Solubis(self.proteinChains)
                 solubis_instance.run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations()
                 solubis_instance.run_FoldX_AnalyseComplex()
