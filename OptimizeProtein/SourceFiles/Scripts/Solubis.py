@@ -54,7 +54,7 @@ class Solubis(object):
 
     def run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations(self):
         self._change_dir_to_pdb_Run_Solubis()
-        agadir_instance = Agadir()
+        agadir_instance = Agadir('unused parameter', 'unused parameter')
         foldx_instance = FoldX()
         for protein_chain in self.protein_chains:
             tangowindow_file = open(self.results_pdb_path + '/Agadir/' + self.pdb_name_of_repaired_pdb + '_' +
@@ -66,8 +66,8 @@ class Solubis(object):
                     for gatekeeper in self.gatekeepers:
                         mutant_name = amino_acid + protein_chain + str(mutation_position) + gatekeeper
                         self._build_fasta_agadir_directory_structure_for_mutant(mutant_name)
-                        self._copy_Agadir_options_FoldX_files_repaired_pdb_to_mutant_folder(self, mutant_name, self.pdb_name_of_repaired_pdb)
-                        foldx_instance.prepare_for_FoldX_BuildModel(self, mutant_name, self.pdb_name_of_repaired_pdb)
+                        self._copy_Agadir_options_FoldX_files_repaired_pdb_to_mutant_folder(mutant_name, self.pdb_name_of_repaired_pdb)
+                        foldx_instance.prepare_for_FoldX_BuildModel(mutant_name, self.pdb_name_of_repaired_pdb)
                         self.individual_list_all_mutants.write(mutant_name + ';\n')
                         grid_engine_job_name = self.solubis_job_prefix + mutant_name
                         python_script = ''
@@ -90,8 +90,8 @@ class Solubis(object):
                 # cwd is Results/pdbname/Runs/Solubis/mutant_name
                 GUM.extract_fasta_from_pdb(self.repair_pdb_name_1_ + '0.pdb', './')
                 grid_engine_job_name = self.analyze_complex_job_prefix + mutant_folder_name
-                python_script_with_path = self.results_pdb_path + '/../../SourceFiles/Scripts/agadir.py'
-                self._run_runscript_and_agadir_on_grid_engine(grid_engine_job_name, python_script_with_path)
+                python_script_with_path = self.results_pdb_path + '/../../SourceFiles/Scripts/run_agadir.py'
+                self._run_runscript_on_grid_engine(grid_engine_job_name, python_script_with_path)
                 os.chdir('./..')  # is this Runs/Solubis folder ?
             else:
                 print mutant_in_Solubis_path
@@ -215,7 +215,7 @@ class Solubis(object):
             print 'Something is wrong'
 
     def _copy_Agadir_options_FoldX_files_repaired_pdb_to_mutant_folder(self, mutant_name, pdb_name):
-        if os.getcwd().split('/')[-1] == mutant_name:
+        if os.getcwd().split('/')[-1] != mutant_name:
             os.chdir(mutant_name)
         if not os.path.exists('Agadir/Options.txt'):
             subprocess.call('cp ' + self.results_pdb_path + '/../../SourceFiles/AgadirFiles/* ./Agadir/.', shell=True)
