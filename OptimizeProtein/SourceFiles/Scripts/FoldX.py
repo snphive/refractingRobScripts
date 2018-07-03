@@ -17,7 +17,6 @@ class FoldX(object):
         individual_list_for_this_mutant_only.write(mutant_name + ';\n')
         individual_list_for_this_mutant_only.close()
 
-
     def prepare_for_FoldX_AnalyseComplex(self, repair_pdb_name):
         _0_1_2_pdbs = ['0.pdb,', '1.pdb,', '2.pdb,']
         repair_pdb_name_1_ = repair_pdb_name + '_1_'
