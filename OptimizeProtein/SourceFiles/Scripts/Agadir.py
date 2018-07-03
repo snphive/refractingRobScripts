@@ -5,8 +5,8 @@ import subprocess
 
 class Agadir(object):
 
-    def __init__(self, start_path, pdb_name):
-        self.path_Results_pdbname = start_path + '/Results/' + pdb_name
+    def __init__(self, agadir_results_path):
+        self.path_Results_pdbname = agadir_results_path
         self.fasta_folder_name = 'Fasta'
         self.agadir_folder_name = 'Agadir'
 
@@ -29,5 +29,6 @@ class Agadir(object):
             apr_sequences.append(line.split()[-4])
         return apr_sequences
 
-    def get_APR_sequence_and_index_from_line_in_tangowindow_file(self, line_in_tangowindow_file):
+    @staticmethod
+    def get_APR_sequence_and_index_from_line_in_tangowindow_file(line_in_tangowindow_file):
         return [line_in_tangowindow_file.split()[-4], int(float(line_in_tangowindow_file.split()[-6]))]
