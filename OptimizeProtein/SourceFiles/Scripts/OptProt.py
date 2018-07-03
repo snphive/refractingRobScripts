@@ -16,6 +16,9 @@ yasara.info.mode = 'txt'
 # It includes preparatory steps for calculating protein structural and aggregation propensity properties,
 # using Yasara functions. It also includes calls to FoldX to perform repair of the structure data.
 # This version of OptProt does exactly the same things as the original. It is simply refactored to be object-oriented.
+# The methods work fine when a single pdb is specified in the Options_file, but has not been tested where more than 1
+# pdb is specified. It is likely that this latter requirement would be resolved with a few changes. To begin that
+# process, I have added a new dictionary data structure pdb_protein_chains_dict.)
 class OptProt(object):
 
     def __init__(self, start_path, scripts_path, r_path, foldx_path, agadir_path, qsub_path):
@@ -26,15 +29,16 @@ class OptProt(object):
         self.agadir_path = agadir_path
         self.qsub_path = qsub_path
         self.repair_job_prefix = 'RPjob_'
-        self.single_space = ' '
-        self.execute_python_and_path_to_script_fwdslash = 'python' + self.single_space + self.scripts_path + '/'
-        self.execute_r_and_path_to_script_fwdslash = 'R <' + self.single_space + self.scripts_path + '/'
+        self.space = ' '
+        self.execute_python_and_path_to_script_fwdslash = 'python' + self.space + self.scripts_path + '/'
+        self.execute_r_and_path_to_script_fwdslash = 'R <' + self.space + self.scripts_path + '/'
         self.pdb_list = []
         self.command = ''
         self.charge = ''
-        self.proteinChains = ''
-        self.proteinChains_and_paths_to_r_foldx_agadir = ''
-        self.proteinChains_and_paths_to_r_foldx_agadir_and_charge = ''
+        self.underscore_separated_proteinChains = ''
+        self.pdb_protein_chains_dict = {}
+        self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir = ''
+        self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir_and_charge = ''
         self._print_absolute_path_to('R', self.r_path)
         self._print_absolute_path_to('FoldX', self.foldx_path)
         self._print_absolute_path_to('TANGO', self.agadir_path)
@@ -47,11 +51,11 @@ class OptProt(object):
     def parse_option_file(self, option_file):
         self._parse_optionfile_for_pdblist(option_file)
         self._parse_optionfile_for_computations_charge_proteinChains(option_file)
-        self.proteinChains_and_paths_to_r_foldx_agadir = self.proteinChains + self.single_space + self.r_path \
-                                                        + self.single_space + self.foldx_path + \
-                                                        self.single_space + self.agadir_path
-        self.proteinChains_and_paths_to_r_foldx_agadir_and_charge = self.proteinChains_and_paths_to_r_foldx_agadir + \
-            self.single_space + self.charge
+        self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir = ''.join(self.underscore_separated_proteinChains) + self.space + self.r_path + \
+                                                         self.space + self.foldx_path + \
+                                                         self.space + self.agadir_path
+        self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir_and_charge = self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir + \
+                                                                    self.space + self.charge
 
     # Tidies up each pdb file using Yasara functions.
     # Converts each pdb to fasta protein sequence via pdb2fasta.py.
@@ -66,11 +70,15 @@ class OptProt(object):
             # current directory Results/pdb
             # self._run_yasara_to_organise_pdb(pdb, pdb_name)
             self._copy_pdb_foldx_agadir_files_to_new_subdirectories(pdb)
-            GUM.extract_fasta_from_pdb(sorted(glob.glob('./PDBs/*.pdb')), './')
-            agadir_instance = Agadir(self.start_path, pdb_name)
+            relative_path_of_pdb_to_read = './PDBs/'
+            relative_path_for_new_fasta_folder_to_write = './'
+            pdb_name_chain_fasta_dict = GUM.extract_pdb_name_fasta_and_chains_from_pdb(pdb, relative_path_of_pdb_to_read)
+            GUM.write_fasta_to_folder(pdb_name_chain_fasta_dict, relative_path_for_new_fasta_folder_to_write)
+            agadir_results_path = self.start_path + '/Results/' + pdb_name
+            agadir_instance = Agadir(agadir_results_path)
             agadir_instance.run_agadir_with_fasta_files('./')
             self._run_repair_on_grid_engine(pdb_name)
-            message_to_print = 'PDBs to be repaired'
+        message_to_print = 'PDBs to be repaired'
         GUM.wait_for_grid_engine_job_to_complete(self.repair_job_prefix, message_to_print)
 
     def perform_selected_computations(self):
@@ -106,8 +114,9 @@ class OptProt(object):
                     self.pdb_list.append(pdb_string)
         print 'PDBs to analyse:\t\t' + ",\t".join(self.pdb_list)
 
-    # 2. Assigns to object variables the computation names ("command"), charge, protein chains specified
-    # in the option file.
+    # TAKE NOTE: This method has a bug for assigning option_file-specified protein chains to a single global variable
+    # (called underscore_separated_proteinChains). It would fail in the scenario where the option_file specifies more
+    # than 1 pdb.
     def _parse_optionfile_for_computations_charge_proteinChains(self, option_file):
         for line in option_file:
             if '#' in line:
@@ -117,17 +126,23 @@ class OptProt(object):
             if 'Charge:' in line:
                 self.charge = line.split(':')[-1].strip(';\n').strip()
             if 'ProteinChains:' in line:
-                self.proteinChains = []
-                protein_chains_string = line.split(':')[-1].strip(';\n')
-                if ',' in protein_chains_string:
-                    protein_chains_temp = protein_chains_string.split(',')
-                    for protein_chain_temp in protein_chains_temp:
-                        self.proteinChains.append(protein_chain_temp.strip())
-                    self.proteinChains = "_".join(self.proteinChains)
+                self.underscore_separated_proteinChains = []
+                protein_chains_option = line.split(':')[-1].strip(';\n')
+                if protein_chains_option == 'All':
+                    for pdb in self.pdb_list:
+                        protein_chains_list = GUM.extract_all_chains_from_pdb(pdb, './PDBs/')
+                        self.underscore_separated_proteinChains = '_'.join(protein_chains_list)
+                        self.pdb_protein_chains_dict = {pdb: self.underscore_separated_proteinChains}
+                elif ',' in protein_chains_option:
+                    protein_chains_list = protein_chains_option.split(',')
+                    protein_chains_list_stripped = []
+                    for protein_chain in protein_chains_list:
+                        protein_chains_list_stripped.append(protein_chain.strip())
+                    self.underscore_separated_proteinChains = '_'.join(protein_chains_list_stripped)
                 else:
-                    self.proteinChains = protein_chains_string
+                    self.underscore_separated_proteinChains = protein_chains_option
         print 'Command to be executed:\t\t' + self.command
-        print 'Protein chains to be considered:\t' + self.proteinChains
+        print 'Protein chains to be considered:\t' + self.underscore_separated_proteinChains
 
     # # # # Called by run_yasara_agadir_repair() # # # #
 
@@ -135,17 +150,17 @@ class OptProt(object):
     # so the variable names in this method are "mol" instead of "protein_chain.
     def _run_yasara_to_organise_pdb(self, pdb, pdb_name):
         yasara.run('DelObj all')
-        yasara.run('LoadPDB' + self.single_space + self.start_path + '/PDBs/' + pdb)
+        yasara.run('LoadPDB' + self.space + self.start_path + '/PDBs/' + pdb)
         yasara.run('DelRes !Protein')
         temp_mols = yasara.run('ListMol All,Format=MOLNAME')
         for mol in temp_mols:
-            yasara.run('RenumberRes all and Mol' + self.single_space + mol + ',First=1')
+            yasara.run('RenumberRes all and Mol' + self.space + mol + ',First=1')
         yasara.run(
             'SavePDB 1,' + self.start_path + '/Results/' + pdb_name + '/PDBs/' + pdb + ',Format=PDB,Transform=Yes')
 
     # The current working directory is Results/<pdb_name>0
     def _copy_pdb_foldx_agadir_files_to_new_subdirectories(self, pdb):
-        cp_start_path = 'cp' + self.single_space + self.start_path
+        cp_start_path = 'cp' + self.space + self.start_path
         subprocess.call(cp_start_path + '/PDBs/' + pdb + ' ./PDBs/.', shell=True)
         subprocess.call(cp_start_path + '/PDBs/' + pdb + ' ./Repair/.', shell=True)
         subprocess.call(cp_start_path + '/SourceFiles/FoldXFiles/* ./Repair/.', shell=True)
@@ -160,7 +175,7 @@ class OptProt(object):
         no_cluster = ''
         using_runscript = False
         python_script_with_path_and_qsub = self.scripts_path + '/' + repair_python_script + \
-                                self.single_space + self.qsub_path
+                                           self.space + self.qsub_path
         GUM.build_job_q_bash(grid_engine_job_name, no_queue, no_max_memory, no_cluster,
                                                    using_runscript, self.foldx_path, python_script_with_path_and_qsub)
         subprocess.call(self.qsub_path + 'qsub job.q', shell=True)
@@ -173,11 +188,11 @@ class OptProt(object):
         stretchplot_r_script = 'stretchplot.R'
         self._print_OptProt_calling_script(stretchplot_python_script)
         subprocess.call(
-            self.execute_python_and_path_to_script_fwdslash + stretchplot_python_script + self.single_space +
-            self.proteinChains_and_paths_to_r_foldx_agadir, shell=True)
+            self.execute_python_and_path_to_script_fwdslash + stretchplot_python_script + self.space +
+            self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir, shell=True)
         self._print_OptProt_calling_script(stretchplot_r_script)
         subprocess.call(
-            self.execute_r_and_path_to_script_fwdslash + stretchplot_r_script + self.single_space + '--no-save',
+            self.execute_r_and_path_to_script_fwdslash + stretchplot_r_script + self.space + '--no-save',
             shell=True)
 
     def _build_directory_tree_for_computations(self):
@@ -206,19 +221,19 @@ class OptProt(object):
         for command in args:
             python_script = self._convert_command_name_to_python_script_name(command)
             if python_script == 'solubis.py':
-                solubis_instance = Solubis(self.proteinChains)
+                solubis_instance = Solubis(self.underscore_separated_proteinChains)
                 solubis_instance.run_FoldX_BuildModel_all_APRs_GKs_scanning_mutations()
-                solubis_instance.run_FoldX_AnalyseComplex()
+                solubis_instance.run_FoldX_AnalyseComplex_And_Agadir()
                 solubis_instance.write_summary_solubis_file()
-            self._print_OptProt_calling_script(python_script)
-            if self.command == 'Supercharge' or self.command == 'DelPos' or self.command == 'Indiv':
+                self._print_OptProt_calling_script(python_script + ' (but via creating an object)')
+            elif self.command == 'Supercharge' or self.command == 'DelPos' or self.command == 'Indiv':
                 subprocess.call(
-                    self.execute_python_and_path_to_script_fwdslash + python_script + self.single_space +
-                    self.proteinChains_and_paths_to_r_foldx_agadir_and_charge, shell=True)
+                    self.execute_python_and_path_to_script_fwdslash + python_script + self.space +
+                    self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir_and_charge, shell=True)
             else:
                 subprocess.call(
-                    self.execute_python_and_path_to_script_fwdslash + python_script + self.single_space +
-                    self.proteinChains_and_paths_to_r_foldx_agadir, shell=True)
+                    self.execute_python_and_path_to_script_fwdslash + python_script + self.space +
+                    self.underscore_separated_proteinChains_and_paths_to_r_foldx_agadir, shell=True)
 
     def _convert_command_name_to_python_script_name(self, command):
         python_script_name = command
