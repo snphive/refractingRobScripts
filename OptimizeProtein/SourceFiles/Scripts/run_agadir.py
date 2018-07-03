@@ -1,7 +1,7 @@
-import os
+import sys
 from Agadir import Agadir
 
-cwd = os.getcwd()
-print 'cwd: ' + cwd
-agadir_instance = Agadir(cwd)
-agadir_instance.run_agadir_with_fasta_files('./')
+agadir_results_path = sys.argv[1]
+agadir = Agadir(agadir_results_path)
+agadir.run_agadir_with_fasta_files('./')
+
