@@ -3,6 +3,9 @@ ROOT:
     FoldX_path: '/switchlab/group/tools/FoldX_2015/FoldX'
     Agadir_path: '/switchlab/group/tools/agadir_10042012/agadirwrapper'
     Qsub_path: '/opt/sge/bin/lx-amd64/'
+    local_FoldX_path: '/Users/u0120577/PycharmProjects'
+    local_Agadir_path: '/Users/u0120577/PycharmProjects'
+    local_R_path: '/usr/local/Cellar/r/3.5.0'
 
     start_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy'
     scripts_path: '/switchlab/group/shazib/OptimizeProteinShazibCopy/SourceFiles/Scripts'
